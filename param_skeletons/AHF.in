@@ -1,0 +1,20 @@
+[AHF]
+ic_filename = FNAMEIN
+ic_filetype = 90
+outfile_prefix = FNAMEOUT
+LgridDomain = 256
+LgridMax = 65536
+NperDomCell = 5
+NperRefCell = 5
+VescTune = 1.5
+NminPerHalo = 50
+RhoVir = 0
+Dvir = 178
+MaxGatherRad = 10.0
+[TIPSY]
+TIPSY_OMEGA0 = OMEGAIN
+TIPSY_LAMBDA0 = LAMBDAIN
+TIPSY_BOXSIZE = BOXSIZEIN
+TIPSY_VUNIT = VUNITIN
+TIPSY_MUNIT = MUNITIN
+TIPSY_EUNIT = EUNITIN
