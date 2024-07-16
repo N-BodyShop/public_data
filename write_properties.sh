@@ -2,13 +2,11 @@
 
 #this script must be run before write_import.sh
 
-# Base directory for Marvel simulations
+# set environment variables
 export TANGOS_SIMULATION_FOLDER="/data/REPOSITORY/public_data"
-
+export PYTHONPATH="/home/bk639/public_data/"
 export TANGOS_PROPERTY_MODULES=properties
 
-# Python path export (uncomment if needed)
-# export PYTHONPATH="/home/bk639/:$PYTHONPATH"
 
 # Function to create database connection string
 create_db_connection() {
@@ -21,7 +19,7 @@ write_functions=$(grep -v '\*\*\*$' write_properties | tr '\n' ' ' | sed 's/ $//
 echo  "Writing properties: $write_functions"
 
 
-# Loop through immediate subfolders in the Marvel directory
+# Loop through immediate subfolders in the sim directory
 for folder in "${TANGOS_SIMULATION_FOLDER}"/*/; do
     if [ -d "$folder" ]; then
         folder_name=$(basename "$folder")
