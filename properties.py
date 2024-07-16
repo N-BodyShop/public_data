@@ -376,7 +376,7 @@ class VelDispersionProfile(PynbodyPropertyCalculation):
     '''
     @classmethod
     def name(self):
-        return "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vdisp_stars_3d", "vdisp_gas_3d", "vdisp_dm_3d"
+        return "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vrdisp_stars_3d", "vrdisp_gas_3d", "vrdisp_dm_3d"
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -475,7 +475,7 @@ class VelDispersionProfileEncl(PynbodyPropertyCalculation):
     '''
     @classmethod
     def name(self):
-        return "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
+        return "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vrdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
