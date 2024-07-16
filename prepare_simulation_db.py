@@ -16,30 +16,30 @@ def is_file_readable(filepath, sim_name):
             f.read(1)
         return True
     except IOError:
-        print(f"Warning: File {filepath} is not readable.")
+        #print(f"Warning: File {filepath} is not readable.")
         return False
 
 def create_symlink(source, dest, sim_name, overwrite=True):
     if not is_file_readable(source, sim_name):
-        print(f"Skipping unreadable file: {source}")
+        #print(f"Skipping unreadable file: {source}")
         return
 
     if os.path.exists(dest):
         if overwrite:
             os.remove(dest)
             os.symlink(source, dest)
-            print(f"Overwritten symlink: {dest} -> {source}")
-        else:
-            print(f"File already exists: {dest}")
+            #print(f"Overwritten symlink: {dest} -> {source}")
+        #else:
+            #print(f"File already exists: {dest}")
     else:
         os.symlink(source, dest)
-        print(f"Created symlink: {dest} -> {source}")
+        #print(f"Created symlink: {dest} -> {source}")
 
 
 def clean_ahf_filename(filename):
     # Check if it's an AHF file
     if 'AHF' not in filename:
-        print('AHF not in file name')
+        #print('AHF not in file name')
         return filename
 
     # Extract the snapshot number
@@ -59,12 +59,9 @@ def clean_ahf_filename(filename):
 
     # If not in the right format, clean it up
     parts = filename.split(snapshot_number)
-    print(parts)
     if len(parts) > 1:
         suffix = parts[1]
-        print(suffix)
         z_match = re.search(rf'\.z\d\.\d\d\d\.AHF_([^\s]+)', suffix)
-        print((z_match.group()))
         if z_match:
             return f"{parts[0]}{snapshot_number}{z_match.group()}"
     # print('could not clean')
@@ -131,20 +128,31 @@ def process_simulations(match_string, base_source_dir, base_dest_dir):
             process_simulation(source_dir, base_dest_dir)
 
 if __name__ == '__main__':
+    # location of the destination directory
+    base_dest_dir = '/data/REPOSITORY/public_data/'
 
-    
-    # base_source_dir = '/data/REPOSITORY/dwarf_volumes'
-    # base_dest_dir = '/data/REPOSITORY/public_data/Marvel'
-    #
-    # simulations = ['cptmarvel.cosmo25cmb.4096g5HbwK1BH','elektra.cosmo25cmb.4096g5HbwK1BH',
-    #                'rogue.cosmo25cmb.4096g5HbwK1BH','storm.cosmo25cmb.4096g1HsbBH ','storm.cosmo25cmb.4096g5HbwK1BH' ]
 
-    base_source_dir = '/data/REPOSITORY/public'
-    base_dest_dir = '/data/REPOSITORY/public_data/gs14'
+    #source directory for Marvel volumes
+    base_source_dir = '/data/REPOSITORY/dwarf_volumes'
 
-    simulations = ['h239.cosmo50cmb.3072g14HMbwK']
+
+    simulations = ['cptmarvel.cosmo25cmb.4096g5HbwK1BH',
+                   'elektra.cosmo25cmb.4096g5HbwK1BH',
+                   'rogue.cosmo25cmb.4096g5HbwK1BH',
+                   'storm.cosmo25cmb.4096g1HsbBH',
+                   'storm.cosmo25cmb.4096g5HbwK1BH']
+
     for sim in simulations:
-        print(f"Processing {sim} simulations...")
+        #print(f"Processing Marvel simulation: {sim}")
+        process_simulations(sim, base_source_dir, base_dest_dir)
+
+    #source directory for gs14
+    base_source_dir = '/data/REPOSITORY/public'
+
+    simulations = ['h239.cosmo50cmb.3072g14HMbwK',
+                   'h258.cosmo50cmb.3072g14HMbwK',
+                   'h277.cosmo50cmb.3072g14HMbwK']
+    for sim in simulations:
         process_simulations(sim, base_source_dir, base_dest_dir)
 
     print("All simulations processed.")

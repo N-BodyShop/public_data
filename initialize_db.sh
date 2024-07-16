@@ -12,6 +12,7 @@ create_db_connection() {
     echo "${TANGOS_SIMULATION_FOLDER}/${sim_name}.db"
 }
 
+
 # Loop through immediate subfolders in the Marvel directory
 for folder in "${TANGOS_SIMULATION_FOLDER}"/*/; do
     if [ -d "$folder" ]; then
