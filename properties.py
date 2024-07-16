@@ -1,4 +1,5 @@
-from tangos.properties.pynbody import PynbodyPropertyCalculation
+from tangos.properties.pynbody import PynbodyPropertyCalculation, LivePropertyCalculation
+from tangos.properties.pynbody.centring import centred_calculation
 from tangos.properties import PropertyCalculation
 import pynbody
 import numpy as np
