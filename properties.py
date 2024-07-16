@@ -1,6 +1,6 @@
-from tangos.properties.pynbody import PynbodyPropertyCalculation, LivePropertyCalculation
+from tangos.properties.pynbody import PynbodyPropertyCalculation
 from tangos.properties.pynbody.centring import centred_calculation
-from tangos.properties import PropertyCalculation
+from tangos.properties import PropertyCalculation, LivePropertyCalculation
 import pynbody
 import numpy as np
 
@@ -127,7 +127,7 @@ class MassEnclosedTemp(PynbodyPropertyCalculation):
     '''
     @classmethod
     def name(self):
-        return "ColdGas_mass_profile", "WarmGas_mass_profile", "HotGas_mass_profile"
+        return "cold_gas_mass_profile", "warm_gas_mass_profile", "hot_gas_mass_profile"
      
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -192,7 +192,7 @@ class Radius(LivePropertyCalculation):
             rho_mean = halo['tot_mass_profile']/(4./3. * np.pi * ((np.arange(len(halo['tot_mass_profile']))+1)*0.1)**3)
             return np.where(rho_mean>rho_crit.in_units('Msol kpc**-3')*self._ncrit)[0][-1]*0.1
 
-class StellarProfileFaceOn(PynbodyHaloProperties):
+class StellarProfileFaceOn(PynbodyPropertyCalculation):
     '''
     calculate surface brightness
     '''
@@ -296,12 +296,12 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
 
     def live_calculate(self, halo, *args):
         r0 = 0.05
-        delta_r = 0.1
+        delta_r = self.get_simulation_property("aprox_resolution_kpc", 0.1)
         if self.band+"_surface_brightness" in halo.keys():
             surface_brightness = halo[self.band+"_surface_brightness"]
         else:
             try:
-                surface_brightness = halo.calculate(self.band+"_surface_brightness()")
+                surface_brightness = halo.calculate(self.band+"_surface_brightness")
             except NoResultsError:
                 return None, None, None, None
         if len(surface_brightness)<self.smooth*2:
@@ -344,7 +344,7 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
                 maxrad = r[maxradi[0]]
 
         if self.sats:
-            cen, mvir = halo.timestep.gather_property('shrink_center', 'Mvir')
+            cen, mvir = halo.timestep.gather_property('shrink_center', 'finder_mass')
             darr = halo['shrink_center'] - cen
             D = np.sqrt(np.sum(darr**2,axis=1))
             dmin = D[(D>0)].min()
