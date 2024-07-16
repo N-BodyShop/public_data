@@ -2,11 +2,24 @@ import os
 import re
 from collections import defaultdict
 
+'''
+This script creates symlinks for files in simulation directories.
+Key features:
+1. Skips ahf_200 directories and files ending in .amiga.grp, .amiga.gtp, and .amiga.stat.
+2. Avoids unreadable files.
+3. Cleans AHF filenames to the format snapshot_number.zX.YYY.AHF_* for tangos database compatibility.
+4. Handles various directory structures (root or snapshot subdirectory).
+5. Overwrites duplicate files by default (configurable).
+6. Processes both Marvel and gs14 simulations.
+'''
+
 def is_snapshot_file(filepath, sim_name):
+    # Identifies snapshot files based on their path pattern
     pattern = f"{sim_name}/{sim_name}.snapshot/{sim_name}.snapshot"
     return filepath.endswith(pattern)
 
 def is_file_readable(filepath, sim_name):
+    # Checks if a file is readable, considering directories and snapshot files as always readable
     if not os.path.isfile(filepath):
         return True  # Directories are considered "readable"
     if is_snapshot_file(filepath, sim_name):
@@ -16,61 +29,46 @@ def is_file_readable(filepath, sim_name):
             f.read(1)
         return True
     except IOError:
-        #print(f"Warning: File {filepath} is not readable.")
         return False
 
 def create_symlink(source, dest, sim_name, overwrite=True):
+    # Creates a symlink, optionally overwriting existing files
     if not is_file_readable(source, sim_name):
-        #print(f"Skipping unreadable file: {source}")
         return
 
     if os.path.exists(dest):
         if overwrite:
             os.remove(dest)
             os.symlink(source, dest)
-            #print(f"Overwritten symlink: {dest} -> {source}")
-        #else:
-            #print(f"File already exists: {dest}")
     else:
         os.symlink(source, dest)
-        #print(f"Created symlink: {dest} -> {source}")
-
 
 def clean_ahf_filename(filename):
-    # Check if it's an AHF file
+    # Cleans AHF filenames to the format required by the tangos database
     if 'AHF' not in filename:
-        #print('AHF not in file name')
         return filename
 
-    # Extract the snapshot number
     match = re.search(r'\b(00\d{3,4})\b', filename)
-    # print(match.group(0))
     if not match:
-        # print('could not find snapshot number')
         return filename
 
     snapshot_number = match.group(1)
     prefix = filename[:match.start()]
 
-    # Check if it's already in the right format
     if re.search(rf'{snapshot_number}\.z\d\.\d\d\d\.AHF_', filename):
-        # print('already in right format')
         return filename
 
-    # If not in the right format, clean it up
     parts = filename.split(snapshot_number)
     if len(parts) > 1:
         suffix = parts[1]
         z_match = re.search(rf'\.z\d\.\d\d\d\.AHF_([^\s]+)', suffix)
         if z_match:
             return f"{parts[0]}{snapshot_number}{z_match.group()}"
-    # print('could not clean')
-    # If we couldn't clean it up, rais an error
+
     raise ValueError(f"Could not clean AHF filename: {filename}")
-    #return filename
 
 def get_file_category(filename):
-    # Define patterns for different file categories
+    # Categorizes files based on their names
     patterns = {
         'snapshot': r'\.snapshot$',
         'ahf': r'AHF',
@@ -85,6 +83,7 @@ def get_file_category(filename):
     return 'other'
 
 def process_simulation(sim_dir, dest_base):
+    # Processes a single simulation directory, creating symlinks for all relevant files
     sim_name = os.path.basename(sim_dir)
     dest_dir = os.path.join(dest_base, sim_name)
     os.makedirs(dest_dir, exist_ok=True)
@@ -100,18 +99,13 @@ def process_simulation(sim_dir, dest_base):
         os.makedirs(dest_subdir, exist_ok=True)
 
         for file in sorted(files):
-            if file.endswith('.amiga.grp'):
-                continue
-            if file.endswith('.amiga.gtp'):
-                continue
-            if file.endswith('.amiga.stat'):
+            if file.endswith(('.amiga.grp', '.amiga.gtp', '.amiga.stat')):
                 continue
 
             source_file = os.path.join(root, file)
             cleaned_file = clean_ahf_filename(file)
             category = get_file_category(cleaned_file)
 
-            # Store file info for later processing
             file_categories[category].append((source_file, cleaned_file, dest_subdir))
 
     # Process files by category
@@ -121,6 +115,7 @@ def process_simulation(sim_dir, dest_base):
             create_symlink(source_file, dest_file, sim_name)
 
 def process_simulations(match_string, base_source_dir, base_dest_dir):
+    # Processes all simulation directories that match the given string
     for sim_folder in os.listdir(base_source_dir):
         if match_string in sim_folder:
             source_dir = os.path.join(base_source_dir, sim_folder)
@@ -128,31 +123,31 @@ def process_simulations(match_string, base_source_dir, base_dest_dir):
             process_simulation(source_dir, base_dest_dir)
 
 if __name__ == '__main__':
-    # location of the destination directory
+    # Destination directory for all processed simulations
     base_dest_dir = '/data/REPOSITORY/public_data/'
 
-
-    #source directory for Marvel volumes
+    # Process Marvel volumes
     base_source_dir = '/data/REPOSITORY/dwarf_volumes'
+    marvel_simulations = [
+        'cptmarvel.cosmo25cmb.4096g5HbwK1BH',
+        'elektra.cosmo25cmb.4096g5HbwK1BH',
+        'rogue.cosmo25cmb.4096g5HbwK1BH',
+        'storm.cosmo25cmb.4096g1HsbBH',
+        'storm.cosmo25cmb.4096g5HbwK1BH'
+    ]
 
-
-    simulations = ['cptmarvel.cosmo25cmb.4096g5HbwK1BH',
-                   'elektra.cosmo25cmb.4096g5HbwK1BH',
-                   'rogue.cosmo25cmb.4096g5HbwK1BH',
-                   'storm.cosmo25cmb.4096g1HsbBH',
-                   'storm.cosmo25cmb.4096g5HbwK1BH']
-
-    for sim in simulations:
-        #print(f"Processing Marvel simulation: {sim}")
+    for sim in marvel_simulations:
         process_simulations(sim, base_source_dir, base_dest_dir)
 
-    #source directory for gs14
+    # Process gs14 simulations
     base_source_dir = '/data/REPOSITORY/public'
+    gs14_simulations = [
+        'h239.cosmo50cmb.3072g14HMbwK',
+        'h258.cosmo50cmb.3072g14HMbwK',
+        'h277.cosmo50cmb.3072g14HMbwK'
+    ]
 
-    simulations = ['h239.cosmo50cmb.3072g14HMbwK',
-                   'h258.cosmo50cmb.3072g14HMbwK',
-                   'h277.cosmo50cmb.3072g14HMbwK']
-    for sim in simulations:
+    for sim in gs14_simulations:
         process_simulations(sim, base_source_dir, base_dest_dir)
 
     print("All simulations processed.")

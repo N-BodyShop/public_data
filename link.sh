@@ -19,12 +19,12 @@ for folder in "${TANGOS_SIMULATION_FOLDER}"/*/; do
 
         echo "Processing folder: $folder_name"
 
-        # Create a unique database file for this simulation in the Marvel directory
+        # Set the database connection
         export TANGOS_DB_CONNECTION=$(create_db_connection "$folder_name")
         echo "Using database: $TANGOS_DB_CONNECTION"
 
         # Add the simulation to the database using the folder name relative to TANGOS_SIMULATION_FOLDER
-        tangos add "${folder_name}" --backend multiprocessing-32
+        tangos link "${folder_name}" --backend multiprocessing-32
 
         # Check if the command was successful
         if [ $? -eq 0 ]; then
