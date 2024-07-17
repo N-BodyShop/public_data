@@ -7,16 +7,17 @@ import numpy as np
 
 
 #Radial Momentum profile property for calculating in/outflow rates
+@pynbody.analysis.profile.Profile.profile_property
 def p_r_weighted(self, weight=None):
     p_r = np.zeros(self.nbins)
     cumind = []
+    if weight != None:
+        weight = self.sim[weight]
+    else:
+        weight = np.ones(len(self.sim)) 
     for i in range(self.nbins):
-        subs = self.sim[self.binidi]
-        if weight != None:
-            weight = subs[weight]
-        else:
-            weight = 1
-        p_r[i] = ((weight*subs['vr'].in_units('kpc yr**-1'))*subs['mass'].in_units('Msol')).sum()
+        subs = self.sim[self.binind[i]]
+        p_r[i] = (weight[self.binind[i]]*(subs['vr'].in_units('kpc yr**-1'))*subs['mass'].in_units('Msol')).sum()
     return p_r
 
 # Mass Flux
@@ -39,7 +40,7 @@ def p_r_Ox(self):
 def p_r_Fe(self):
     return p_r_weighted(self, weight='FeMassFrac')
 
-class InflowOutflow(HaloDensityProfile):
+class InflowOutflow(PynbodyPropertyCalculation):
     '''
     Inflow and Outflow rate calculations.
     '''
@@ -47,9 +48,16 @@ class InflowOutflow(HaloDensityProfile):
 
     def __init__(self, simulation):
         super().__init__(simulation)
+        self._xdelta = self.get_simulation_property("approx_resolution_kpc", 0.1)
         # Filters to select inflowing and outflowing particles.
         self.ifilt = pynbody.filt.LowPass('vr', 0)
         self.ofilt = pynbody.filt.HighPass('vr', 0)
+
+    def plot_x0(self):
+        return self.plot_xdelta()/2
+
+    def plot_xdelta(self):
+        return self._xdelta
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -64,9 +72,9 @@ class InflowOutflow(HaloDensityProfile):
         halo['ones'] = np.ones(len(halo))
 
         oprof = pynbody.analysis.profile.Profile(halo.g[self.ofilt], type='lin', ndim=3,
-                                           min=0, max=maxrad, nbins=nbins, weight='mass')
+                                           min=0.1*maxrad, max=maxrad, nbins=nbins, weight='mass')
         iprof = pynbody.analysis.profile.Profile(halo.g[self.ifilt], type='lin', ndim=3,
-                                           min=0, max=maxrad, nbins=nbins, weight='mass')
+                                           min=0.1*maxrad, max=maxrad, nbins=nbins, weight='mass')
         mass_out = oprof['p_r']/delta
         mass_in = iprof['p_r']/delta
         metal_out = oprof['p_r_metals']/delta
@@ -80,9 +88,9 @@ class InflowOutflow(HaloDensityProfile):
     @centred_calculation
     def calculate(self, halo, existing_properties):
         try:
-            vcen = pynbody.analysis.halo.vel_center(halo,cen_size=maxrad, retcen=True)
+            vcen = pynbody.analysis.halo.vel_center(halo,cen_size="5 kpc", retcen=True)
         except:
-            return None, None, None
+            return None, None, None, None, None, None, None, None
 
         halo['vel'] -= vcen
 
