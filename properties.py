@@ -9,16 +9,18 @@ import numpy as np
 #Radial Momentum profile property for calculating in/outflow rates
 @pynbody.analysis.profile.Profile.profile_property
 def p_r_weighted(self, weight=None):
-    p_r = np.zeros(self.nbins)
-    cumind = []
+    vr_array = self.sim['vr'].view(np.ndarray)
+    mass_array = self.sim['mass'].view(np.ndarray)
     if weight != None:
-        weight = self.sim[weight]
+        weight_array = self.sim[weight].view(np.ndarray)
     else:
-        weight = np.ones(len(self.sim)) 
-    for i in range(self.nbins):
-        subs = self.sim[self.binind[i]]
-        p_r[i] = (weight[self.binind[i]]*(subs['vr'].in_units('kpc yr**-1'))*subs['mass'].in_units('Msol')).sum()
-    return p_r
+        weight_array = np.ones(vr_array.size)
+    product = (weight_array*vr_array*mass_array)
+    result = np.array([product[self.binind[i]].sum() for i in range(self.nbins)])
+    result = result.view(pynbody.array.SimArray)
+    result.units = self.sim['vr'].units*self.sim['mass'].units
+    result.sim = self.sim
+    return result.in_units('Msol kpc yr**-1')
 
 # Mass Flux
 @pynbody.analysis.profile.Profile.profile_property
@@ -40,7 +42,7 @@ def p_r_Ox(self):
 def p_r_Fe(self):
     return p_r_weighted(self, weight='FeMassFrac')
 
-class InflowOutflow(PynbodyPropertyCalculation):
+class InflowOutflow(HaloDensityProfile):
     '''
     Inflow and Outflow rate calculations.
     '''
