@@ -1,16 +1,95 @@
 from tangos.properties.pynbody import PynbodyPropertyCalculation
+from tangos.properties.pynbody.profile import HaloDensityProfile
 from tangos.properties.pynbody.centring import centred_calculation
 from tangos.properties import PropertyCalculation, LivePropertyCalculation
 import pynbody
 import numpy as np
 
 
-class Outflows(PynbodyPropertyCalculation):
-    names = ""
-    def calculate(self, particle_data, existing_properties):
-       pass
+#Radial Momentum profile property for calculating in/outflow rates
+def p_r_weighted(self, weight=None):
+    p_r = np.zeros(self.nbins)
+    cumind = []
+    for i in range(self.nbins):
+        subs = self.sim[self.binidi]
+        if weight != None:
+            weight = subs[weight]
+        else:
+            weight = 1
+        p_r[i] = ((weight*subs['vr'].in_units('kpc yr**-1'))*subs['mass'].in_units('Msol')).sum()
+    return p_r
+
+# Mass Flux
+@pynbody.analysis.profile.Profile.profile_property
+def p_r(self):
+    return p_r_weighted(self)
+
+# Metal Mass Flux
+@pynbody.analysis.profile.Profile.profile_property
+def p_r_metals(self):
+    return p_r_weighted(self, weight='metals')
+
+# Oxygen Mass Flux
+@pynbody.analysis.profile.Profile.profile_property
+def p_r_Ox(self):
+    return p_r_weighted(self, weight='OxMassFrac')
+
+# Iron Mass Flux
+@pynbody.analysis.profile.Profile.profile_property
+def p_r_Fe(self):
+    return p_r_weighted(self, weight='FeMassFrac')
+
+class InflowOutflow(HaloDensityProfile):
+    '''
+    Inflow and Outflow rate calculations.
+    '''
+    names = 'mass_outflow_profile', 'mass_inflow_profile', 'metal_outflow_profile', 'metal_inflow_profile', 'Ox_outflow_profile', 'Ox_inflow_profile', 'Fe_outflow_profile', 'Fe_inflow_profile'
+
+    def __init__(self, simulation):
+        super().__init__(simulation)
+        # Filters to select inflowing and outflowing particles.
+        self.ifilt = pynbody.filt.LowPass('vr', 0)
+        self.ofilt = pynbody.filt.HighPass('vr', 0)
+
     def requires_property(self):
-       return ["shrink_center", "max_radius", "vel_center"]
+        return ["shrink_center", "max_radius"]
+
+    def plot_ylabel(self):
+        return r"Mass Flux $(M_\odot yr^{-1})$"
+
+    def _get_profile(self, halo, maxrad):
+        delta = self.plot_xdelta()
+        nbins = int(maxrad / delta)
+        maxrad = delta * nbins
+        halo['ones'] = np.ones(len(halo))
+
+        oprof = pynbody.analysis.profile.Profile(halo.g[self.ofilt], type='lin', ndim=3,
+                                           min=0, max=maxrad, nbins=nbins, weight='mass')
+        iprof = pynbody.analysis.profile.Profile(halo.g[self.ifilt], type='lin', ndim=3,
+                                           min=0, max=maxrad, nbins=nbins, weight='mass')
+        mass_out = oprof['p_r']/delta
+        mass_in = iprof['p_r']/delta
+        metal_out = oprof['p_r_metals']/delta
+        metal_in = iprof['p_r_metals']/delta
+        Ox_out = oprof['p_r_Ox']/delta
+        Ox_in = iprof['p_r_Ox']/delta
+        Fe_out = oprof['p_r_Fe']/delta
+        Fe_in = iprof['p_r_Fe']/delta
+        return mass_out, mass_in, metal_out, metal_in, Ox_out, Ox_in, Fe_out, Fe_in
+        
+    @centred_calculation
+    def calculate(self, halo, existing_properties):
+        try:
+            vcen = pynbody.analysis.halo.vel_center(halo,cen_size=maxrad, retcen=True)
+        except:
+            return None, None, None
+
+        halo['vel'] -= vcen
+
+        mass_out, mass_in, Z_out, Z_in, Ox_out, Ox_in, Fe_out, Fe_in = self._get_profile(halo, existing_properties["max_radius"])
+
+        halo['vel'] += vcen
+        return mass_out, mass_in, Z_out, Z_in, Ox_out, Ox_in, Fe_out, Fe_in
 
 class MetalProfile(PynbodyPropertyCalculation):
     '''
