@@ -50,55 +50,43 @@ class InflowOutflow(HaloDensityProfile):
 
     def __init__(self, simulation):
         super().__init__(simulation)
-        self._xdelta = self.get_simulation_property("approx_resolution_kpc", 0.1)
         # Filters to select inflowing and outflowing particles.
         self.ifilt = pynbody.filt.LowPass('vr', 0)
         self.ofilt = pynbody.filt.HighPass('vr', 0)
-
-    def plot_x0(self):
-        return self.plot_xdelta()/2
-
-    def plot_xdelta(self):
-        return self._xdelta
-
-    def requires_property(self):
-        return ["shrink_center", "max_radius"]
 
     def plot_ylabel(self):
         return r"Mass Flux $(M_\odot yr^{-1})$"
 
     def _get_profile(self, halo, maxrad):
         delta = self.plot_xdelta()
-        nbins = int(maxrad / delta)
-        maxrad = delta * nbins
-        halo['ones'] = np.ones(len(halo))
-
+        nbins = int(0.9*maxrad / delta)
+        maxrad = 0.1*maxrad + delta * nbins
         oprof = pynbody.analysis.profile.Profile(halo.g[self.ofilt], type='lin', ndim=3,
-                                           min=0.1*maxrad, max=maxrad, nbins=nbins, weight='mass')
+                                           min=0.1*maxrad, max=maxrad, nbins=nbins)
         iprof = pynbody.analysis.profile.Profile(halo.g[self.ifilt], type='lin', ndim=3,
-                                           min=0.1*maxrad, max=maxrad, nbins=nbins, weight='mass')
-        mass_out = oprof['p_r']/delta
-        mass_in = iprof['p_r']/delta
-        metal_out = oprof['p_r_metals']/delta
-        metal_in = iprof['p_r_metals']/delta
-        Ox_out = oprof['p_r_Ox']/delta
-        Ox_in = iprof['p_r_Ox']/delta
-        Fe_out = oprof['p_r_Fe']/delta
-        Fe_in = iprof['p_r_Fe']/delta
+                                           min=0.1*maxrad, max=maxrad, nbins=nbins)
+        mass_out  = (oprof['p_r']/delta).view(np.ndarray)
+        mass_in   = (iprof['p_r']/delta).view(np.ndarray)
+        metal_out = (oprof['p_r_metals']/delta).view(np.ndarray)
+        metal_in  = (iprof['p_r_metals']/delta).view(np.ndarray)
+        Ox_out    = (oprof['p_r_Ox']/delta).view(np.ndarray)
+        Ox_in     = (iprof['p_r_Ox']/delta).view(np.ndarray)
+        Fe_out    = (oprof['p_r_Fe']/delta).view(np.ndarray)
+        Fe_in     = (iprof['p_r_Fe']/delta).view(np.ndarray)
         return mass_out, mass_in, metal_out, metal_in, Ox_out, Ox_in, Fe_out, Fe_in
         
     @centred_calculation
     def calculate(self, halo, existing_properties):
         try:
-            vcen = pynbody.analysis.halo.vel_center(halo,cen_size="5 kpc", retcen=True)
+            vcen = pynbody.analysis.halo.vel_center(halo,cen_size=existing_properties["max_radius"], retcen=True)
         except:
             return None, None, None, None, None, None, None, None
 
-        halo['vel'] -= vcen
+        halo.g['vel'] -= vcen
 
         mass_out, mass_in, Z_out, Z_in, Ox_out, Ox_in, Fe_out, Fe_in = self._get_profile(halo, existing_properties["max_radius"])
 
-        halo['vel'] += vcen
+        halo.g['vel'] += vcen
         return mass_out, mass_in, Z_out, Z_in, Ox_out, Ox_in, Fe_out, Fe_in
 
 class MetalProfile(PynbodyPropertyCalculation):
