@@ -11,16 +11,11 @@ create_db_connection() {
     echo "${TANGOS_SIMULATION_FOLDER}/${sim_name}.db"
 }
 
-# Define property batches
-declare -a batches=(
-    "shrink_center finder_mass finder_dm_mass finder_gas_mass finder_star_mass" #instantaneous_SFR"
-    "dm_density_profile dm_mass_profile gas_density_profile gas_mass_profile star_density_profile star_mass_profile"# tot_mass_profile"
-    "star_metal_profile gas_metal_profile star_Fe_profile gas_Fe_profile star_Ox_profile gas_Ox_profile cold_gas_metal_profile cold_gas_Fe_profile cold_gas_Ox_profile"
-    "cold_gas_mass_profile warm_gas_mass_profile hot_gas_mass_profile"
-    "vrdisp_stars vrdisp_gas vrdisp_dm vrdisp_stars_3d vrdisp_gas_3d vrdisp_dm_3d vrdisp_encl_stars vrdisp_encl_gas vrdisp_encl_dm vrdisp_encl_stars_3d vrdisp_encl_gas_3d vrdisp_encl_dm_3d"
-    "v_surface_brightness b_surface_brightness i_surface_brightness"
-    "SFR_histogram"# outflow_rates"
-)
+# Create a logs directory if it doesn't exist
+mkdir -p logs
+
+# Read in write functions from write_properties and store as an iterable variable
+write_functions=$(grep -v '\*\*\*$' write_properties | tr '\n' ' ' | sed 's/ $//')
 
 # Loop through immediate subfolders in the sim directory
 for folder in "${TANGOS_SIMULATION_FOLDER}"/*/; do
@@ -29,26 +24,40 @@ for folder in "${TANGOS_SIMULATION_FOLDER}"/*/; do
 
         echo "Processing folder: $folder_name"
 
+        # Create a directory for this simulation's logs
+        sim_log_dir="logs/${folder_name}"
+        mkdir -p "$sim_log_dir"
+
+        # Create a main log file for this simulation
+        main_log_file="${sim_log_dir}/main_log.txt"
+        echo "Processing folder: $folder_name" > "$main_log_file"
+
         # Load existing database
         export TANGOS_DB_CONNECTION=$(create_db_connection "$folder_name")
-        echo "Using database: $TANGOS_DB_CONNECTION"
+        echo "Using database: $TANGOS_DB_CONNECTION" | tee -a "$main_log_file"
 
-        # Process each batch
-        for batch in "${batches[@]}"; do
-            echo "Processing batch: $batch"
-            
+        # iterate over each function in write_functions
+        for function in $write_functions; do
+            echo "Processing function: $function" | tee -a "$main_log_file"
+
+            # Create a log file for this function
+            function_log_file="${sim_log_dir}/${function}_log.txt"
+            echo "Processing function: $function for simulation: $folder_name" > "$function_log_file"
+
             # Construct and execute the tangos write command
-            tangos_command="tangos write $batch --sim \"$folder_name\" --backend multiprocessing-32 --load-mode=server-shared-mem"
-            echo "Executing: $tangos_command"
-            eval $tangos_command
+            #remove the --latest flag to write all properties to all timesteps
+            tangos_command="tangos write $function --latest --sim \"$folder_name\" --backend multiprocessing-32 --load-mode=server-shared-mem"
+            echo "Executing: $tangos_command" | tee -a "$main_log_file" "$function_log_file"
+            eval $tangos_command 2>&1 | tee -a "$main_log_file" "$function_log_file"
 
             # Check if the command was successful
             if [ $? -eq 0 ]; then
-                echo "Successfully added properties for $folder_name to the database"
+                echo "Added properties for $folder_name to the database with no critical errors" | tee -a "$main_log_file" "$function_log_file"
             else
-                echo "Error: Failed to add properties for $folder_name to the database"
-                break  # Exit the batch loop if there's an error
+                echo "Error: Failed to add properties for $folder_name to the database" | tee -a "$main_log_file" "$function_log_file"
             fi
+
+            echo "----------------------------------------" | tee -a "$main_log_file" "$function_log_file"
         done
     fi
 done
