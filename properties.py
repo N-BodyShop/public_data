@@ -4,6 +4,7 @@ from tangos.properties.pynbody.centring import centred_calculation
 from tangos.properties import PropertyCalculation, LivePropertyCalculation
 import pynbody
 import numpy as np
+import scipy
 
 
 #Radial Momentum profile property for calculating in/outflow rates
@@ -254,20 +255,20 @@ class Radius(LivePropertyCalculation):
         return 'radius'
     
     def requires_property(self):
-        return ['tot_mass_profile']
+        return ['star_mass_profile', 'gas_mass_profile','dm_mass_profile']
     
     def live_calculate(self, halo,*args):
+        self._deltar = self.get_simulation_property("approx_resolution_kpc", 0.1) 
         ts = halo.timestep
         z = ts.redshift
         a = 1.0 / (1.0 + z)
         H_z = pynbody.analysis.cosmology._a_dot(a, self._h0, self._omegaM0, self._omegaL0) / a
         H_z = pynbody.units.Unit("100 km s^-1 Mpc^-1") * H_z
         rho_crit = (3 * H_z ** 2) / (8 * np.pi * pynbody.units.G)
-        if halo['tot_mass_profile'].max() == 0:
-            return None
-        else:
-            rho_mean = halo['tot_mass_profile']/(4./3. * np.pi * ((np.arange(len(halo['tot_mass_profile']))+1)*0.1)**3)
-            return np.where(rho_mean>rho_crit.in_units('Msol kpc**-3')*self._ncrit)[0][-1]*0.1
+
+        tot_mass_profile = halo['dm_mass_profile']+halo['gas_mass_profile']+halo['star_mass_profile']
+        rho_mean = tot_mass_profile/(4./3. * np.pi * ((np.arange(len(tot_mass_profile))+1)*self._deltar)**3)
+        return (np.where(rho_mean>rho_crit.in_units('Msol kpc**-3')*self._ncrit)[0][-1]+1)*self._deltar
 
 class StellarProfileFaceOn(PynbodyPropertyCalculation):
     '''
@@ -278,11 +279,11 @@ class StellarProfileFaceOn(PynbodyPropertyCalculation):
         return "v_surface_brightness", "b_surface_brightness", "i_surface_brightness"
 
     def plot_x0(cls):
-        return 0.05
+        return self.get_simulation_property("approx_resolution_kpc", 0.1)/2
 
     @classmethod
     def plot_xdelta(cls):
-        return 0.1
+        return self.get_simulation_property("approx_resolution_kpc", 0.1)
 
     @classmethod
     def plot_xlabel(cls):
@@ -341,12 +342,12 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
     def requires_property(self):
         return ["v_surface_brightness", "b_surface_brightness", "i_surface_brightness", 'max_radius', 'shrink_center']
     
-    def sersic_surface_brightness(r, mueff, reff, n):
+    def sersic_surface_brightness(self,r, mueff, reff, n):
         # I(R) = m0 + 2.5*b_n/ln(10) ( (r/reff)^(1/n)-1 )
         #b_n taken based on solution to gamma function (Capaccioli 1989) for n < 10.
         return mueff + 2.5*(0.868*n-0.142)*((r/reff)**(1./n) - 1)
 
-    def fit_sersic(r, surface_brightness, return_cov=False):
+    def fit_sersic(self, r, surface_brightness, return_cov=False):
         s0_guess = np.mean(surface_brightness[:3])
         #s0_range = [s0_guess-2, s0_guess+2]
         #r0_range = [0.1,r[-1]]
@@ -361,7 +362,7 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
         sigma = 10**(0.6*(surface_brightness-20))/r
         sigma = None
 
-        popt, pcov = scipy.optimize.curve_fit(sersic_surface_brightness,r,surface_brightness,
+        popt, pcov = scipy.optimize.curve_fit(self.sersic_surface_brightness,r,surface_brightness,
                                           bounds=np.array((s0_range, r0_range, n_range)).T,
                                           sigma=sigma,
                                           p0=(s0_guess, r0_guess, n_guess))
@@ -372,20 +373,20 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
             return popt
 
     def live_calculate(self, halo, *args):
-        r0 = 0.05
-        delta_r = self.get_simulation_property("aprox_resolution_kpc", 0.1)
+        delta_r = self.get_simulation_property("approx_resolution_kpc", 0.1)
+        r0 = delta_r/2
         if self.band+"_surface_brightness" in halo.keys():
             surface_brightness = halo[self.band+"_surface_brightness"]
         else:
             try:
-                surface_brightness = halo.calculate(self.band+"_surface_brightness")
+                surface_brightness = halo.calculate(self.band+"_surface_brightness()")
             except NoResultsError:
                 return None, None, None, None
         if len(surface_brightness)<self.smooth*2:
             return None, None, None, None
         if surface_brightness.max()==0:
             return None, None, None, None
-        r = np.arange(len(surface_brightness))*delta_r + 0.05
+        r = np.arange(len(surface_brightness))*delta_r + delta_r/2.
         nbins = len(surface_brightness)
         if self.smooth > 1:
             surface_brightness_new = np.nanmean(np.pad(surface_brightness[self.smooth:].astype(float),
@@ -439,7 +440,7 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
             return None, None, None, None
         else:
             try:
-                m0, r0, n = fit_sersic(r_fit, sb_fit)
+                m0, r0, n = self.fit_sersic(r_fit, sb_fit)
             except:
                 m0 = None
                 n = None
@@ -452,7 +453,7 @@ class VelDispersionProfile(PynbodyPropertyCalculation):
     '''
     @classmethod
     def name(self):
-        return "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vdisp_stars_3d", "vdisp_gas_3d", "vdisp_dm_3d"
+        return "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vrdisp_stars_3d", "vrdisp_gas_3d", "vrdisp_dm_3d"
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -551,7 +552,7 @@ class VelDispersionProfileEncl(PynbodyPropertyCalculation):
     '''
     @classmethod
     def name(self):
-        return "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
+        return "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vrdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
