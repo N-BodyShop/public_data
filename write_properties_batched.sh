@@ -28,6 +28,7 @@ log_message() {
 
 # Define property batches
 declare -a write_functions=(
+<<<<<<< HEAD
     "shrink_center finder_mass finder_dm_mass finder_gas_mass finder_star_mass"
     "dm_density_profile dm_mass_profile gas_density_profile gas_mass_profile star_density_profile star_mass_profile"
     "star_metal_profile gas_metal_profile star_Fe_profile gas_Fe_profile star_Ox_profile gas_Ox_profile"
@@ -39,6 +40,22 @@ declare -a write_functions=(
     "vrdisp_encl_stars_3d vrdisp_encl_gas_3d vrdisp_encl_dm_3d"
     "v_surface_brightness b_surface_brightness i_surface_brightness"
     "SFR_histogram"
+=======
+    "shrink_center"
+    "finder_mass"
+    "finder_dm_mass"
+    "SFR_histogram"
+    "dm_density_profile"
+    "gas_density_profile"
+    "star_metal_profile"
+    "cold_gas_metal_profile"
+    "cold_gas_mass_profile"
+    "vrdisp_stars"
+    "vrdisp_encl_stars"
+    "radius"
+    "v_surface_brightness"
+    "half_light"
+>>>>>>> origin
 )
 
 # Loop through immediate subfolders in the sim directory
