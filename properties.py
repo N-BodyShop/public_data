@@ -203,9 +203,7 @@ class MassEnclosedTemp(PynbodyPropertyCalculation):
     '''
     Enclosed mass for different temperature ranges (MIGHT NEED TO CHANGE THESE)
     '''
-    @classmethod
-    def name(self):
-        return "cold_gas_mass_profile", "warm_gas_mass_profile", "hot_gas_mass_profile"
+    names = "cold_gas_mass_profile", "warm_gas_mass_profile", "hot_gas_mass_profile"
      
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -243,6 +241,7 @@ class Radius(LivePropertyCalculation):
     '''
     calculates a radius relative to the cricial density (i.e. Radius(200) = R200 based on total mass profile)
     '''
+    names = 'radius'
     def __init__(self, simulation, n_crit=200):
         super(Radius, self).__init__(simulation)
         self._omegaM0 = 0.3086
@@ -250,9 +249,6 @@ class Radius(LivePropertyCalculation):
         self._h0 = 0.67
         self._ncrit = n_crit
         
-    @classmethod
-    def name(cls):
-        return 'radius'
     
     def requires_property(self):
         return ['star_mass_profile', 'gas_mass_profile','dm_mass_profile']
@@ -274,9 +270,7 @@ class StellarProfileFaceOn(PynbodyPropertyCalculation):
     '''
     calculate surface brightness
     '''
-    @classmethod
-    def name(self):
-        return "v_surface_brightness", "b_surface_brightness", "i_surface_brightness"
+    names = "v_surface_brightness", "b_surface_brightness", "i_surface_brightness"
 
     def plot_x0(cls):
         return self.get_simulation_property("approx_resolution_kpc", 0.1)/2
@@ -451,9 +445,7 @@ class VelDispersionProfile(PynbodyPropertyCalculation):
     '''
     dispersion of stars, gas and dm profiles
     '''
-    @classmethod
-    def name(self):
-        return "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vrdisp_stars_3d", "vrdisp_gas_3d", "vrdisp_dm_3d"
+    names = "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vrdisp_stars_3d", "vrdisp_gas_3d", "vrdisp_dm_3d"
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -550,9 +542,7 @@ class VelDispersionProfileEncl(PynbodyPropertyCalculation):
     '''
     enclosed velosity dispersion profiles
     '''
-    @classmethod
-    def name(self):
-        return "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vrdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
+    names = "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vrdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
