@@ -126,9 +126,7 @@ class MassEnclosedTemp(PynbodyPropertyCalculation):
     '''
     Enclosed mass for different temperature ranges (MIGHT NEED TO CHANGE THESE)
     '''
-    @classmethod
-    def name(self):
-        return "cold_gas_mass_profile", "warm_gas_mass_profile", "hot_gas_mass_profile"
+    names = "cold_gas_mass_profile", "warm_gas_mass_profile", "hot_gas_mass_profile"
      
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -166,6 +164,7 @@ class Radius(LivePropertyCalculation):
     '''
     calculates a radius relative to the cricial density (i.e. Radius(200) = R200 based on total mass profile)
     '''
+    names = 'radius'
     def __init__(self, simulation, n_crit=200):
         super(Radius, self).__init__(simulation)
         self._omegaM0 = 0.3086
@@ -173,40 +172,35 @@ class Radius(LivePropertyCalculation):
         self._h0 = 0.67
         self._ncrit = n_crit
         
-    @classmethod
-    def name(cls):
-        return 'radius'
     
     def requires_property(self):
-        return ['tot_mass_profile']
+        return ['star_mass_profile', 'gas_mass_profile','dm_mass_profile']
     
     def live_calculate(self, halo,*args):
+        self._deltar = self.get_simulation_property("approx_resolution_kpc", 0.1) 
         ts = halo.timestep
         z = ts.redshift
         a = 1.0 / (1.0 + z)
         H_z = pynbody.analysis.cosmology._a_dot(a, self._h0, self._omegaM0, self._omegaL0) / a
         H_z = pynbody.units.Unit("100 km s^-1 Mpc^-1") * H_z
         rho_crit = (3 * H_z ** 2) / (8 * np.pi * pynbody.units.G)
-        if halo['tot_mass_profile'].max() == 0:
-            return None
-        else:
-            rho_mean = halo['tot_mass_profile']/(4./3. * np.pi * ((np.arange(len(halo['tot_mass_profile']))+1)*0.1)**3)
-            return np.where(rho_mean>rho_crit.in_units('Msol kpc**-3')*self._ncrit)[0][-1]*0.1
+
+        tot_mass_profile = halo['dm_mass_profile']+halo['gas_mass_profile']+halo['star_mass_profile']
+        rho_mean = tot_mass_profile/(4./3. * np.pi * ((np.arange(len(tot_mass_profile))+1)*self._deltar)**3)
+        return (np.where(rho_mean>rho_crit.in_units('Msol kpc**-3')*self._ncrit)[0][-1]+1)*self._deltar
 
 class StellarProfileFaceOn(PynbodyPropertyCalculation):
     '''
     calculate surface brightness
     '''
-    @classmethod
-    def name(self):
-        return "v_surface_brightness", "b_surface_brightness", "i_surface_brightness"
+    names = "v_surface_brightness", "b_surface_brightness", "i_surface_brightness"
 
     def plot_x0(cls):
-        return 0.05
+        return self.get_simulation_property("approx_resolution_kpc", 0.1)/2
 
     @classmethod
     def plot_xdelta(cls):
-        return 0.1
+        return self.get_simulation_property("approx_resolution_kpc", 0.1)
 
     @classmethod
     def plot_xlabel(cls):
@@ -374,9 +368,7 @@ class VelDispersionProfile(PynbodyPropertyCalculation):
     '''
     dispersion of stars, gas and dm profiles
     '''
-    @classmethod
-    def name(self):
-        return "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vrdisp_stars_3d", "vrdisp_gas_3d", "vrdisp_dm_3d"
+    names = "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vrdisp_stars_3d", "vrdisp_gas_3d", "vrdisp_dm_3d"
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -389,7 +381,6 @@ class VelDispersionProfile(PynbodyPropertyCalculation):
         sigdm = None
         sigs3D = None
         sigg3D = None
-        sigdm3D = None
         sigdm3D = None
         if len(halo.g)>5:
             proG = pynbody.analysis.profile.Profile(halo.g, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
@@ -474,9 +465,7 @@ class VelDispersionProfileEncl(PynbodyPropertyCalculation):
     '''
     enclosed velosity dispersion profiles
     '''
-    @classmethod
-    def name(self):
-        return "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vrdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
+    names = "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vrdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
