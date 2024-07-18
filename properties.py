@@ -198,6 +198,38 @@ class ColdDenGasMetalProfile(PynbodyPropertyCalculation):
          #                                                            existing_properties['max_radius'])
         return cold_metal_pro, cold_fe_pro, cold_ox_pro#, dense_metal_pro, dense_fe_pro, dense_ox_pro
 
+class InstantaneousSFR(PynbodyPropertyCalculation):
+    '''
+    Calculate the instantaneous star formation rate based on the SFR of all eligible
+    gas particles in the simulation.
+    '''
+    names = "instantaneous_SFR"
+    def calculate(self, halo, existing_properties):
+        # Load SF Parameters
+        dCStar = self.get_simulation_property("dCStar", 0.05) 
+        dPhysDenMin = self.get_simulation_property("dPhysDenMin", 
+                                                   0.1)*pynbody.units.m_p/(pynbody.units.cm**3)
+        dTempMax = self.get_simulation_property("dTempMax", 1.5e4)
+        H2 = "COOLING_MOLECULARH" in self.get_simulation_property("macros", "")
+
+        # Only select particles that are eligible to form stars
+        # (rho > dPhysDenMin, temp < dTempMax, not two phase)
+        dense_filter = pynbody.filt.HighPass('rho', dPhysDenMin)
+        cold_filter = pynbody.filt.LowPass('temp', dTempMax)
+        eligible = dense_filter & cold_filter
+        if 'massHot' in halo.loadable_keys():
+            eligible &= ~pynbody.filt.HighPass('massHot', 0)
+        elif 'MassHot' in halo.loadable_keys():
+            eligible &= ~pynbody.filt.HighPass('MassHot', 0)
+        sfg = halo.g[eligible]
+
+        # Calculate the instantaneous SFR for all gas particles.
+        tdyn = 1.0/np.sqrt(4*np.pi*pynbody.units.G*sfg['rho'])
+        sfr = dCStar*(sfg['mass']/tdyn).in_units('Msol yr**-1')
+        if H2:
+            return (sfr*sfg['H2']).sum()
+        else:
+            return sfr.sum()
 
 class MassEnclosedTemp(PynbodyPropertyCalculation):
     '''
