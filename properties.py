@@ -14,7 +14,7 @@ class Outflows(PynbodyPropertyCalculation):
     def requires_property(self):
        return ["shrink_center", "max_radius", "vel_center"]
 
-class MetalProfile(PynbodyPropertyCalculation):
+class MetalProfile(HaloDensityProfile):
     '''
     Mass weighted metalicity profiles
     '''
@@ -22,16 +22,6 @@ class MetalProfile(PynbodyPropertyCalculation):
 
     def __init__(self, simulation):
         super().__init__(simulation)
-        self._xdelta = self.get_simulation_property("approx_resolution_kpc", 0.1)
-
-    def requires_property(self):
-        return ["shrink_center", "max_radius"]
-
-    def plot_x0(self):
-        return self.plot_xdelta()/2
-
-    def plot_xdelta(self):
-        return self._xdelta
 
     def plot_xlabel(self):
         return "r/kpc"
@@ -71,7 +61,7 @@ class MetalProfile(PynbodyPropertyCalculation):
         return metals_star, metals_gas, fe_star, fe_gas, ox_star, ox_gas
 
 
-class ColdDenGasMetalProfile(PynbodyPropertyCalculation):
+class ColdDenGasMetalProfile(HaloDensityProfile):
     '''
     Mass weighted metalicity profiles for cold gas only (T < 2e4 K)
     '''
@@ -79,19 +69,6 @@ class ColdDenGasMetalProfile(PynbodyPropertyCalculation):
 
     def __init__(self, simulation):
         super().__init__(simulation)
-        self._xdelta = self.get_simulation_property("approx_resolution_kpc", 0.1)
-
-    def requires_property(self):
-        return ["shrink_center", "max_radius"]
-
-    def plot_x0(self):
-        return self.plot_xdelta()/2
-
-    def plot_xdelta(self):
-        return self._xdelta
-
-    def plot_xlabel(self):
-        return "r/kpc"
 
     def plot_ylabel(self):
         return r"Metal Mass Fraction"
@@ -118,9 +95,7 @@ class ColdDenGasMetalProfile(PynbodyPropertyCalculation):
     def calculate(self, halo, existing_properties):
         cold_metal_pro, cold_fe_pro, cold_ox_pro = self._get_profile(halo.g[pynbody.filt.LowPass('temp',2e4)],
                                            existing_properties['max_radius'])
-        #dense_metal_pro, dense_fe_pro, dense_ox_pro = self._get_profile(halo.g[pynbody.filt.HighPass('rho', '0.1 m_p cm**-3')],
-         #                                                            existing_properties['max_radius'])
-        return cold_metal_pro, cold_fe_pro, cold_ox_pro#, dense_metal_pro, dense_fe_pro, dense_ox_pro
+        return cold_metal_pro, cold_fe_pro, cold_ox_pro
 
 
 class MassEnclosedTemp(HaloDensityProfile):
@@ -135,15 +110,6 @@ class MassEnclosedTemp(HaloDensityProfile):
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
-
-    def plot_x0(self):
-        return self.plot_xdelta()/2
-
-    def plot_xdelta(self):
-        return self._xdelta
-
-    def plot_xlabel(self):
-        return "r/kpc"
 
     def plot_ylabel(self):
         return "Gas Mass"
@@ -215,11 +181,11 @@ class StellarProfileFaceOn(HaloDensityProfile):
     names = "u_surface_brightness", "g_surface_brightness", "r_surface_brightness", "i_surface_brightness", "z_surface_brightness", "U_surface_brightness", "V_surface_brightness", "J_surface_brightness"
 
     @classmethod
-    def plot_ylog(cls):
+    def plot_xlog(cls):
         return False
 
     @classmethod
-    def plot_xlog(cls):
+    def plot_ylog(cls):
         return False
 
     @staticmethod
@@ -322,8 +288,6 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
 
         flux_density = 10**(surface_brightness/-2.5)
         flux_density[flux_density!=flux_density]=0
-        #nbins = len(surface_brightness)
-        #r = np.arange(0,halo['max_radius']+delta_r,delta_r)
         cumu_flux_density = (r * flux_density).cumsum()
         cumu_flux_density/=cumu_flux_density[-1]
 
@@ -370,7 +334,7 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
                 r0 = None
             return half_light, m0, n, r0
 
-class VelDispersionProfile(PynbodyPropertyCalculation):
+class VelDispersionProfile(HaloDensityProfile):
     '''
     dispersion of stars, gas and dm profiles
     '''
