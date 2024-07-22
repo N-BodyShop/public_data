@@ -159,17 +159,38 @@ class ColdDenGasMetalProfile(HaloDensityProfile):
         ox_pro = None
 
         if len(halo)>10:
-            pro = pynbody.analysis.profile.Profile(halo, type='lin', ndim=3,
-                                               min=0, max=maxrad, nbins=nbins, weight='mass')
-            metal_pro = pro['metals']
-            fe_pro = pro['FeMassFrac']
-            ox_pro = pro['OxMassFrac']
+            if 'massHot' in halo.loadable_keys():
+                twophase = pynbody.filt.HighPass('massHot', 0)
+                halo.g['massCold'] = halo.g['mass'] - halo.g['massHot']
+                one_pro = pynbody.analysis.profile.Profile(halo[~twophase & pynbody.filt.LowPass('temp', 2e4)], type='lin', ndim=3,
+                                                   min=0, max=maxrad, nbins=nbins, weight='mass')
+                cold_pro = pynbody.analysis.profile.Profile(halo[twophase], type='lin', ndim=3,
+                                                   min=0, max=maxrad, nbins=nbins, weight='massCold')
+                metal_pro = one_pro['metals'] + cold_pro['metals']
+                fe_pro = one_pro['FeMassFrac'] + cold_pro['FeMassFrac']
+                ox_pro = one_pro['OxMassFrac'] + cold_pro['OxMassFrac']
+            elif 'MassHot' in halo.loadable_keys():
+                twophase = pynbody.filt.HighPass('MassHot', 0)
+                halo.g['MassCold'] = halo.g['mass'] - halo.g['MassHot']
+                one_pro = pynbody.analysis.profile.Profile(halo[~twophase & pynbody.filt.LowPass('temp', 2e4)], type='lin', ndim=3,
+                                                   min=0, max=maxrad, nbins=nbins, weight='mass')
+                cold_pro = pynbody.analysis.profile.Profile(halo[twophase], type='lin', ndim=3,
+                                                   min=0, max=maxrad, nbins=nbins, weight='MassCold')
+                metal_pro = one_pro['metals'] + cold_pro['metals']
+                fe_pro = one_pro['FeMassFrac'] + cold_pro['FeMassFrac']
+                ox_pro = one_pro['OxMassFrac'] + cold_pro['OxMassFrac']
+            else:
+                pro = pynbody.analysis.profile.Profile(halo[pynbody.filt.LowPass('temp', 2e4)], type='lin', ndim=3,
+                                                   min=0, max=maxrad, nbins=nbins, weight='mass')
+                metal_pro = pro['metals']
+                fe_pro = pro['FeMassFrac']
+                ox_pro = pro['OxMassFrac']
 
         return metal_pro, fe_pro, ox_pro
 
     @centred_calculation
     def calculate(self, halo, existing_properties):
-        cold_metal_pro, cold_fe_pro, cold_ox_pro = self._get_profile(halo.g[pynbody.filt.LowPass('temp',2e4)],
+        cold_metal_pro, cold_fe_pro, cold_ox_pro = self._get_profile(halo.g,
                                            existing_properties['max_radius'])
         return cold_metal_pro, cold_fe_pro, cold_ox_pro
 
@@ -227,14 +248,39 @@ class MassEnclosedTemp(HaloDensityProfile):
         maxrad = delta * (nbins + 1)
         if len(halo.g)==0:
             return None, None, None
-        proCG = pynbody.analysis.profile.Profile(halo.g[pynbody.filt.LowPass("temp", 1.e5)],
-                                                 type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-        proWG = pynbody.analysis.profile.Profile(halo.g[pynbody.filt.BandPass("temp", 1.e5, 1e6)],
-                                                 type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-        proHG = pynbody.analysis.profile.Profile(halo.g[pynbody.filt.HighPass("temp", 1.e6)],
-                                                 type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+        if 'massHot' in halo.loadable_keys():
+            twophase = pynbody.filt.HighPass('massHot', 0)
+            halo.g['massCold'] = halo.g['mass'] - halo.g['massHot']
+            one_proCG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.LowPass("temp", 1.e5)],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            one_proWG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.BandPass("temp", 1.e5, 1e6)],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            one_proHG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.HighPass("temp", 1.e6)],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            two_pro = pynbody.analysis.profile.Profile(halo.g[twophase],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            return one_proCG['mass_enc']+two_pro['massCold'].cumsum(), one_proWG['mass_enc'], one_proHG['mass_enc']+two_pro['massHot'].cumsum()
+        elif'MassHot' in halo.loadable_keys():
+            twophase = pynbody.filt.HighPass('MassHot', 0)
+            halo.g['MassCold'] = halo.g['mass'] - halo.g['MassHot']
+            one_proCG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.LowPass("temp", 1.e5)],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            one_proWG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.BandPass("temp", 1.e5, 1e6)],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            one_proHG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.HighPass("temp", 1.e6)],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            two_pro = pynbody.analysis.profile.Profile(halo.g[twophase],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            return one_proCG['mass_enc']+two_pro['MassCold'].cumsum(), one_proWG['mass_enc'], one_proHG['mass_enc']+two_pro['MassHot'].cumsum()
+        else:
+            proCG = pynbody.analysis.profile.Profile(halo.g[pynbody.filt.LowPass("temp", 1.e5)],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            proWG = pynbody.analysis.profile.Profile(halo.g[pynbody.filt.BandPass("temp", 1.e5, 1e6)],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+            proHG = pynbody.analysis.profile.Profile(halo.g[pynbody.filt.HighPass("temp", 1.e6)],
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
 
-        return proCG['mass_enc'], proWG['mass_enc'], proHG['mass_enc']
+            return proCG['mass_enc'], proWG['mass_enc'], proHG['mass_enc']
      
     @centred_calculation
     def calculate(self,halo,properties):
