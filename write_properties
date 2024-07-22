@@ -37,6 +37,12 @@ vrdisp_encl_dm
 vrdisp_encl_stars_3d
 vrdisp_encl_gas_3d
 vrdisp_encl_dm_3d
-tot_mass_profile ***
-instantaneous_SFR ***
-outflow_rates ***
+instantaneous_SFR
+mass_outflow_profile
+mass_inflow_profile
+metal_outflow_profile
+metal_inflow_profile
+Ox_outflow_profile
+Ox_inflow_profile
+Fe_outflow_profile
+Fe_inflow_profile
