@@ -630,8 +630,8 @@ class VelDispersionProfileEncl(PynbodyPropertyCalculation):
 
         halo['vel'] -= vcen
 
-        sigS, sigG, sigDM = self.rstat(halo,maxrad,delta)
+        sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d = self.rstat(halo,maxrad,delta)
 
         halo['vel'] += vcen
 
-        return sigS, sigG, sigDM
+        return sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d
