@@ -23,7 +23,7 @@ cold_gas_mass_profile
 warm_gas_mass_profile
 hot_gas_mass_profile
 v_surface_brightness
-b_surface_brightness
+#b_surface_brightness #not done
 i_surface_brightness
 vrdisp_stars
 vrdisp_gas
