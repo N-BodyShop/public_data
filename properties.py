@@ -89,6 +89,74 @@ class InflowOutflow(HaloDensityProfile):
 
         halo.g['vel'] += vcen
         return mass_out, mass_in, Z_out, Z_in, Ox_out, Ox_in, Fe_out, Fe_in
+    
+class AngMomProfile(HaloDensityProfile):
+    '''
+    Mass weighted specific angular momentum magnitude (j) and direction (jphi/jtheta)
+    '''
+    names = 'j_gas_profile', 'j_star_profile', 'j_dm_profile',\
+    'j_phi_gas_profile', 'j_phi_star_profile', 'j_phi_dm_profile',\
+    'j_theta_gas_profile', 'j_theta_star_profile', 'j_theta_dm_profile'
+
+    def __init__(self, simulation):
+        super().__init__(simulation)
+
+    def plot_xlabel(self):
+        return "r/kpc"
+
+    def plot_ylabel(self):
+        return r"j_{tot} kpc km s$^{-1}$", r"j_{tot} kpc km s$^{-1}$", r"j_{tot} kpc km s$^{-1}$", \
+            r"$\theta_j [radians]", r"$\theta_j [radians]", r"$\theta_j [radians]", \
+                r"$\phi_j[radians]", r"$\phi_j [radians]", r"$\phi_j [radians]"
+
+    def _get_profile(self, halo, maxrad):
+        delta = self.plot_xdelta()
+        nbins = int(maxrad / delta)
+        jtot_g = None
+        jtot_s = None
+        jtot_dm = None
+        jphi_g = None
+        jphi_s = None
+        jphi_dm = None
+        jtheta_g = None
+        jtheta_s = None
+        jtheta_dm = None
+        
+        if len(halo.g)>10: #avoid any weird failures by forcing each species to have at least a few particles
+            prog = pynbody.analysis.profile.Profile(halo.g, type='lin', ndim=3,
+                                           min=0, max=maxrad, nbins=nbins)
+            jtot_g = prog['jtot']
+            jphi_g = prog['j_phi']
+            jtheta_g = prog['j_theta']
+        if len(halo.s)>10:
+            pros = pynbody.analysis.profile.Profile(halo.s, type='lin', ndim=3,
+                                           min=0, max=maxrad, nbins=nbins)
+            jtot_s = pros['jtot']
+            jphi_s = pros['j_phi']
+            jtheta_s = pros['j_theta']
+        if len(halo.dm)>10:
+            prod = pynbody.analysis.profile.Profile(halo.dm, type='lin', ndim=3,
+                                           min=0, max=maxrad, nbins=nbins)
+            jtot_dm = prod['jtot']
+            jphi_dm = prod['j_phi']
+            jtheta_dm = prod['j_theta']
+        
+        return jtot_g, jtot_s, jtot_dm, jphi_g, jphi_s, jphi_dm, jtheta_g, jtheta_s, jtheta_dm
+
+    @centred_calculation
+    def calculate(self, halo, existing_properties):
+        try:
+            vcen = pynbody.analysis.halo.vel_center(halo,cen_size="5 kpc", retcen=True)
+        except:
+            return None, None, None, None, None, None, None, None, None
+
+        halo['vel'] -= vcen
+
+        jtot_g, jtot_s, jtot_dm, jphi_g, jphi_s, jphi_dm, jtheta_g, jtheta_s, jtheta_dm = self._get_profile(halo, existing_properties["max_radius"])
+
+        halo.g['vel'] += vcen
+
+        return jtot_g, jtot_s, jtot_dm, jphi_g, jphi_s, jphi_dm, jtheta_g, jtheta_s, jtheta_dm
 
 class MetalProfile(HaloDensityProfile):
     '''
