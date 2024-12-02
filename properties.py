@@ -154,7 +154,7 @@ class AngMomProfile(HaloDensityProfile):
 
         jtot_g, jtot_s, jtot_dm, jphi_g, jphi_s, jphi_dm, jtheta_g, jtheta_s, jtheta_dm = self._get_profile(halo, existing_properties["max_radius"])
 
-        halo.g['vel'] += vcen
+        halo['vel'] += vcen
 
         return jtot_g, jtot_s, jtot_dm, jphi_g, jphi_s, jphi_dm, jtheta_g, jtheta_s, jtheta_dm
 
