@@ -6,6 +6,8 @@ import numpy as np
 import scipy
 
 
+
+
 class Outflows(PynbodyPropertyCalculation):
     names = ""
     def calculate(self, particle_data, existing_properties):
@@ -426,7 +428,7 @@ def vr_disp_encl(self):
     cumind = []
     for i in range(self.nbins):
         cumind = np.append(cumind,self.binind[i])
-        cumind = np.sort(cumind).astype(np.int)
+        cumind = np.sort(cumind).astype(np.int64)
         subs = self.sim[cumind]
         # use = np.where(subs.g['temp'] > temp_cut)[0]
         vr = subs['vr'].view(np.ndarray)
@@ -442,7 +444,7 @@ def v_disp_tot_encl(self):
     cumind = []
     for i in range(self.nbins):
         cumind = np.append(cumind,self.binind[i])
-        cumind = np.sort(cumind).astype(np.int)
+        cumind = np.sort(cumind).astype(np.int64)
         subs = self.sim[cumind]
         # use = np.where(subs.g['temp'] > temp_cut)[0]
         vx = subs['vx'].view(np.ndarray)

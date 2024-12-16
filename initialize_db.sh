@@ -1,39 +1,43 @@
 #!/bin/bash
 
-# Base directory for Marvel simulations
-export TANGOS_SIMULATION_FOLDER="/data/REPOSITORY/public_data"
+export TANGOS_SIMULATION_FOLDER="/home/bk639/data/MerianSIDM"
+export TANGOS_DB_CONNECTION="${TANGOS_SIMULATION_FOLDER}/MerianSIDM.db"
 
-# Python path export (uncomment if needed)
-# export PYTHONPATH="/home/bk639/:$PYTHONPATH"
+echo "Using database: $TANGOS_DB_CONNECTION"
 
-# Function to create database connection string
-create_db_connection() {
-    local sim_name=$1
-    echo "${TANGOS_SIMULATION_FOLDER}/${sim_name}.db"
-}
-
-# Loop through immediate subfolders in the Marvel directory
+# Loop through immediate subfolders in the directory
 for folder in "${TANGOS_SIMULATION_FOLDER}"/*/; do
     if [ -d "$folder" ]; then
         folder_name=$(basename "$folder")
-
         echo "Processing folder: $folder_name"
 
-        # Create a unique database file for this simulation in the Marvel directory
-        export TANGOS_DB_CONNECTION=$(create_db_connection "$folder_name")
-        echo "Using database: $TANGOS_DB_CONNECTION"
+        if [ "$folder_name" = "adiabatic" ]; then
+            # For the adiabatic folder, process its subfolders
+            for sim in "$folder"*/; do
+                if [ -d "$sim" ]; then
+                    sim_name=$(basename "$sim")
+                    echo "Processing adiabatic simulation: $sim_name"
 
-        # Add the simulation to the database using the folder name relative to TANGOS_SIMULATION_FOLDER
-        tangos add "${folder_name}" --backend multiprocessing-32
+                    # Add the simulation using adiabatic/simname format
+                    tangos add "adiabatic/${sim_name}" --backend multiprocessing-32 --no-renumber
 
-        # Check if the command was successful
-        if [ $? -eq 0 ]; then
-            echo "Successfully added $folder_name to the database"
-
+                    if [ $? -eq 0 ]; then
+                        echo "Successfully added adiabatic/${sim_name} to the database"
+                    else
+                        echo "Error: Failed to add adiabatic/${sim_name} to the database"
+                    fi
+                fi
+            done
         else
-            echo "Error: Failed to add $folder_name to the database"
-        fi
+            # Process other folders normally
+            tangos add "${folder_name}" --backend multiprocessing-32 --no-renumber
 
+            if [ $? -eq 0 ]; then
+                echo "Successfully added $folder_name to the database"
+            else
+                echo "Error: Failed to add $folder_name to the database"
+            fi
+        fi
     fi
 done
 
