@@ -653,16 +653,23 @@ def v_disp_tot_encl(self):
         v3d_disp[i] = np.sqrt(sigx2 + sigy2 + sigz2)
     return v3d_disp
 
-class VelDispersionProfileEncl(PynbodyPropertyCalculation):
+class VelDispersionProfileEncl(HaloDensityProfile):
     '''
     enclosed velosity dispersion profiles
     '''
     names = "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vrdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
 
+    def __init__(self, simulation):
+        super().__init__(simulation)
+
+    def plot_xlabel(self):
+        return "r/kpc"
+
     def requires_property(self):
         return ["shrink_center", "max_radius"]
 
-    def rstat(self, halo, maxrad,delta=0.1):
+    def rstat(self, halo, maxrad):
+        delta = self.plot_xdelta()
         nbins = int(maxrad / delta)
         maxrad = delta * (nbins + 1)
         sigG = None
@@ -690,7 +697,6 @@ class VelDispersionProfileEncl(PynbodyPropertyCalculation):
     @centred_calculation
     def calculate(self,halo,properties):
         maxrad = properties['max_radius']
-        delta = properties.get('delta',0.1)
         try:
             vcen = pynbody.analysis.halo.vel_center(halo,cen_size='5 kpc', retcen=True)
         except:
@@ -698,7 +704,7 @@ class VelDispersionProfileEncl(PynbodyPropertyCalculation):
 
         halo['vel'] -= vcen
 
-        sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d = self.rstat(halo,maxrad,delta)
+        sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d = self.rstat(halo,maxrad)
 
         halo['vel'] += vcen
 
