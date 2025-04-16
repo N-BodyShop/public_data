@@ -616,15 +616,14 @@ class VelDispersionProfile(HaloDensityProfile):
 def vr_disp_encl(self):
     vrdisp = np.zeros(self.nbins)
     cumind = []
+    vr = self.sim['vr'].view(np.ndarray)
+    weight = self.sim[self._weight_by].view(np.ndarray)
     for i in range(self.nbins):
-        cumind = np.append(cumind,self.binind[i])
-        cumind = np.sort(cumind).astype(np.int64)
-        subs = self.sim[cumind]
+        cumind = np.append(cumind,self.binind[i]).astype(np.int64)
         # use = np.where(subs.g['temp'] > temp_cut)[0]
-        vr = subs['vr'].view(np.ndarray)
-        weight = subs[self._weight_by].view(np.ndarray)
-        mean_sq = ((vr*weight).sum()/weight.sum())**2
-        sq_mean = (vr**2*weight).sum()/weight.sum()
+        total_weight = weight[cumind].sum()
+        mean_sq = ((vr*weight)[cumind].sum()/total_weight)**2
+        sq_mean = (vr**2*weight)[cumind].sum()/total_weight
         vrdisp[i] = np.sqrt(sq_mean - mean_sq)
     return vrdisp
 
@@ -632,23 +631,22 @@ def vr_disp_encl(self):
 def v_disp_tot_encl(self):
     v3d_disp = np.zeros(self.nbins)
     cumind = []
+    vx = self.sim['vx'].view(np.ndarray)
+    vy = self.sim['vy'].view(np.ndarray)
+    vz = self.sim['vz'].view(np.ndarray)
+    weight = self.sim[self._weight_by].view(np.ndarray)
     for i in range(self.nbins):
-        cumind = np.append(cumind,self.binind[i])
-        cumind = np.sort(cumind).astype(np.int64)
-        subs = self.sim[cumind]
+        cumind = np.append(cumind,self.binind[i]).astype(np.int64)
         # use = np.where(subs.g['temp'] > temp_cut)[0]
-        vx = subs['vx'].view(np.ndarray)
-        vy = subs['vy'].view(np.ndarray)
-        vz = subs['vz'].view(np.ndarray)
-        weight = subs[self._weight_by].view(np.ndarray)
-        mean_sq_x = ((vx*weight).sum()/weight.sum())**2
-        sq_mean_x = (vx**2*weight).sum()/weight.sum()
+        total_weight = weight[cumind].sum()
+        mean_sq_x = ((vx*weight)[cumind].sum()/total_weight)**2
+        sq_mean_x = (vx**2*weight)[cumind].sum()/total_weight
         sigx2 = sq_mean_x - mean_sq_x
-        mean_sq_y = ((vy * weight).sum() / weight.sum()) ** 2
-        sq_mean_y = (vy** 2 * weight).sum() / weight.sum()
+        mean_sq_y = ((vy * weight)[cumind].sum() / total_weight) ** 2
+        sq_mean_y = (vy** 2 * weight)[cumind].sum() / total_weight
         sigy2 = sq_mean_y - mean_sq_y
-        mean_sq_z = ((vz * weight).sum() / weight.sum()) ** 2
-        sq_mean_z = (vz ** 2 * weight).sum() / weight.sum()
+        mean_sq_z = ((vz * weight)[cumind].sum() / total_weight) ** 2
+        sq_mean_z = (vz ** 2 * weight)[cumind].sum() / total_weight
         sigz2 = sq_mean_z - mean_sq_z
         v3d_disp[i] = np.sqrt(sigx2 + sigy2 + sigz2)
     return v3d_disp
