@@ -5,11 +5,14 @@ export TANGOS_DB_CONNECTION=$2
 export TANGOS_PROPERTY_MODULES=properties
 
 # Get my own directory
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR=$(dirname "$0")
 
 export PYTHONPATH=$SCRIPT_DIR
 
 echo $TANGOS_SIMULATION_FOLDER
+
+# Tangos won't import properties if PYTEST_CURRENT_TEST is set
+unset PYTEST_CURRENT_TEST
 
 # Import the data
 for i in $TANGOS_SIMULATION_FOLDER/*

@@ -1,4 +1,5 @@
 shrink_center
+max_radius
 SFR_histogram
 dm_density_profile
 dm_mass_profile
@@ -22,9 +23,14 @@ cold_gas_Ox_profile
 cold_gas_mass_profile
 warm_gas_mass_profile
 hot_gas_mass_profile
-v_surface_brightness
-#b_surface_brightness #not done
+u_surface_brightness
+g_surface_brightness
+r_surface_brightness
 i_surface_brightness
+z_surface_brightness
+U_surface_brightness
+V_surface_brightness
+J_surface_brightness
 vrdisp_stars
 vrdisp_gas
 vrdisp_dm
