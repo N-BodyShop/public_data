@@ -562,10 +562,17 @@ class VelDispersionProfile(HaloDensityProfile):
     '''
     names = "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vrdisp_stars_3d", "vrdisp_gas_3d", "vrdisp_dm_3d"
 
+    def __init__(self, simulation):
+        super().__init__(simulation)
+
+    def plot_xlabel(self):
+        return "r/kpc"
+
     def requires_property(self):
         return ["shrink_center", "max_radius"]
 
-    def rstat(self, halo, maxrad,delta=0.1):
+    def rstat(self, halo, maxrad):
+        delta = self.plot_xdelta()
         nbins = int(maxrad / delta)
         maxrad = delta * (nbins + 1)
         sigg = None
@@ -574,15 +581,15 @@ class VelDispersionProfile(HaloDensityProfile):
         sigs3D = None
         sigg3D = None
         sigdm3D = None
-        if len(halo.g)>5:
+        if len(halo.g)>10:
             proG = pynbody.analysis.profile.Profile(halo.g, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
             sigg =  proG['vr_disp']
             sigg3D = np.sqrt(proG['vx_disp']**2 + proG['vy_disp']**2 + proG['vz_disp']**2)
-        if len(halo.s)>5:
+        if len(halo.s)>10:
             proS = pynbody.analysis.profile.Profile(halo.s, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
             sigs = proS['vr_disp']
             sigs3D = np.sqrt(proS['vx_disp'] ** 2 + proS['vy_disp'] ** 2 + proS['vz_disp'] ** 2)
-        if len(halo.dm)>5:
+        if len(halo.dm)>10:
             proDM = pynbody.analysis.profile.Profile(halo.dm, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
             sigdm = proDM['vr_disp']
             sigdm3D = np.sqrt(proDM['vx_disp'] ** 2 + proDM['vy_disp'] ** 2 + proDM['vz_disp'] ** 2)
@@ -591,7 +598,6 @@ class VelDispersionProfile(HaloDensityProfile):
     @centred_calculation
     def calculate(self,halo,properties):
         maxrad = properties['max_radius']
-        delta = properties.get('delta',0.1)
         try:
             vcen = pynbody.analysis.halo.vel_center(halo,cen_size='5 kpc', retcen=True)
         except:
@@ -599,17 +605,11 @@ class VelDispersionProfile(HaloDensityProfile):
 
         halo['vel'] -= vcen
 
-        sigS, sigG, sigDM, sigS3D, sigG3D, sigDM3D = self.rstat(halo,maxrad,delta)
+        sigS, sigG, sigDM, sigS3D, sigG3D, sigDM3D = self.rstat(halo,maxrad)
 
         halo['vel'] += vcen
 
         return sigS, sigG, sigDM, sigS3D, sigG3D, sigDM3D
-
-    def plot_x0(cls):
-        return 0.0
-
-    def plot_xdelta(cls):
-        return 0.1
 
 #Define two profile properties used below
 @pynbody.analysis.profile.Profile.profile_property
