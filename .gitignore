@@ -164,5 +164,7 @@ cython_debug/
 # vim swapfiles
 *.swp
 
+# Test Data
+testdata/
 # sqlite DB from tangos
-MUGS.db
+*.db
