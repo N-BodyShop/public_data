@@ -560,7 +560,7 @@ class VelDispersionProfile(HaloDensityProfile):
     '''
     dispersion of stars, gas and dm profiles
     '''
-    names = "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vrdisp_stars_3d", "vrdisp_gas_3d", "vrdisp_dm_3d"
+    names = "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vdisp_stars_3d", "vdisp_gas_3d", "vdisp_dm_3d"
 
     def __init__(self, simulation):
         super().__init__(simulation)
