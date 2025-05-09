@@ -1,7 +1,7 @@
 from tangos.properties.pynbody import PynbodyPropertyCalculation
 from tangos.properties.pynbody.profile import HaloDensityProfile
 from tangos.properties.pynbody.centring import centred_calculation
-from tangos.properties import PropertyCalculation, LivePropertyCalculation
+from tangos.properties import PropertyCalculation, LivePropertyCalculation, TimeChunkedProperty
 import pynbody
 import numpy as np
 import scipy
