@@ -719,8 +719,8 @@ class BHAccAveHistogram(BHAccHistogram):
 
 
     def calculate(self, halo, properties):
-        tmax_Gyr = 20.0  # calculate up to 20 Gyr
-        nbins = int(20.0 / self.pixel_delta_t_Gyr)
+        grid_tmax_Gyr = 20.0  # calculate up to 20 Gyr
+        nbins = int(grid_tmax_Gyr / self.pixel_delta_t_Gyr)
 
         halo = halo.s
 
@@ -739,11 +739,9 @@ class BHAccAveHistogram(BHAccHistogram):
         order = np.argsort(t_orbit)
 
         t_max = properties.timestep.time_gyr
-        dt = self.tmax_Gyr/self.nbins
-        t_grid = np.arange(self.nbins+1)
 
-        mdot_grid_n, _ = np.histogram(t_orbit[order],bins=nbins,range=(0,tmax_Gyr))
-        mdot_grid_sum, _ = np.histogram(t_orbit[order],weights=Mdot_orbit[order],bins=nbins,range=(0,tmax_Gyr))
+        mdot_grid_n, _ = np.histogram(t_orbit[order],bins=nbins,range=(0,grid_tmax_Gyr))
+        mdot_grid_sum, _ = np.histogram(t_orbit[order],weights=Mdot_orbit[order],bins=nbins,range=(0,grid_tmax_Gyr))
         mdot_grid_ave = mdot_grid_sum/mdot_grid_n.astype(np.float)
 
         return mdot_grid_ave[self.store_slice(t_max)]
