@@ -708,21 +708,13 @@ class VelDispersionProfileEncl(HaloDensityProfile):
 
         return sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d
 
-class BHAccAveHistogram(TimeChunkedProperty):
-    @classmethod
-    def name(self):
-        return "BH_mdot_histogram_ave"
+class BHAccAveHistogram(BHAccHistogram):
+    
+    names = "BH_mdot_histogram_ave",
 
     def requires_property(self):
         return []
 
-
-    def preloop(self, f, db_timestep):
-        self.log = BHShortenedLog.get_existing_or_new(db_timestep.filename)
-
-    @classmethod
-    def no_proxies(self):
-        return True
 
     def calculate(self, halo, properties):
         tmax_Gyr = 20.0  # calculate up to 20 Gyr
@@ -748,16 +740,8 @@ class BHAccAveHistogram(TimeChunkedProperty):
         dt = self.tmax_Gyr/self.nbins
         t_grid = np.arange(self.nbins+1)
 
-         #print t_grid
         mdot_grid_n, _ = np.histogram(t_orbit[order],bins=nbins,range=(0,tmax_Gyr))
         mdot_grid_sum, _ = np.histogram(t_orbit[order],weights=Mdot_orbit[order],bins=nbins,range=(0,tmax_Gyr))
         mdot_grid_ave = mdot_grid_sum/mdot_grid_n.astype(np.float)
-
-
-         #Mdot_grid = scipy.interpolate.interp1d(t_orbit[order], Mdot_orbit[order], bounds_error=False)(t_grid)
-
-
-         #print t_max
-         #print Mdot_grid
 
         return mdot_grid_ave[self.store_slice(t_max)]
