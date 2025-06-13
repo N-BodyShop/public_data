@@ -742,6 +742,6 @@ class BHAccAveHistogram(BHAccHistogram):
 
         mdot_grid_n, _ = np.histogram(t_orbit[order],bins=nbins,range=(0,grid_tmax_Gyr))
         mdot_grid_sum, _ = np.histogram(t_orbit[order],weights=Mdot_orbit[order],bins=nbins,range=(0,grid_tmax_Gyr))
-        mdot_grid_ave = mdot_grid_sum/mdot_grid_n.astype(np.float)
+        mdot_grid_ave = mdot_grid_sum/mdot_grid_n
 
         return mdot_grid_ave[self.store_slice(t_max)]
