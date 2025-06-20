@@ -61,6 +61,13 @@ class InflowOutflow(HaloDensityProfile):
         return r"Mass Flux $(M_\odot yr^{-1})$"
 
     def _get_profile(self, halo, maxrad):
+        halo.g['metals']
+        halo.s['metals']
+        halo.g['FeMassFrac']
+        halo.s['FeMassFrac']
+        halo.g['OxMassFrac']
+        halo.s['OxMassFrac']
+
         delta = self.plot_xdelta()
         nbins = int(0.9*maxrad / delta)
         maxrad = 0.1*maxrad + delta * nbins
@@ -187,6 +194,12 @@ class MetalProfile(HaloDensityProfile):
         ox_pro_g = None
         ox_pro_s = None
 
+        halo.g['metals']
+        halo.s['metals']
+        halo.g['FeMassFrac']
+        halo.s['FeMassFrac']
+        halo.g['OxMassFrac']
+        halo.s['OxMassFrac']
         if len(halo.g)>10:
             pro_g = pynbody.analysis.profile.Profile(halo.g, type='lin', ndim=3,
                                                min=0, max=maxrad, nbins=nbins, weight='mass')
@@ -227,6 +240,13 @@ class ColdDenGasMetalProfile(HaloDensityProfile):
         metal_pro = None
         fe_pro = None
         ox_pro = None
+
+        halo.g['metals']
+        halo.s['metals']
+        halo.g['FeMassFrac']
+        halo.s['FeMassFrac']
+        halo.g['OxMassFrac']
+        halo.s['OxMassFrac']
 
         if len(halo)>10:
             if 'massHot' in halo.loadable_keys():
