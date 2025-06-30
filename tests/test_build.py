@@ -1,6 +1,7 @@
 import tarfile
 import requests
 import subprocess
+import pytest
 
 def build(simname):
     return subprocess.run(['/bin/bash', 'build_tangos_DB.sh', simname, 'test.db'])
@@ -18,6 +19,7 @@ def get_testdata():
     else:
         raise Exception(f"Failed to download test data: {r.status_code}")
 
+@pytest.mark.order("first")
 def test_build():
     get_testdata()
     build('testdata').check_returncode()

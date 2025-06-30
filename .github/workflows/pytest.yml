@@ -29,4 +29,7 @@ jobs:
         pip install flake8 pytest requests pynbody tangos scipy pytest-order
     - name: Test with pytest
       run: |
+        export TANGOS_SIMULATION_FOLDER=`realpath testdata`
+        export TANGOS_DB_CONNECTION=test.db
+        export TANGOS_PROPERTY_MODULES=properties
         pytest
