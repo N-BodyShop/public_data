@@ -1,6 +1,4 @@
 import os
-os.environ["TANGOS_DB_CONNECTION"] = "test.db"
-os.environ["TANGOS_SIMULATION_FOLDER"] = "testdata"
 import tangos
 import pynbody as pyn
 

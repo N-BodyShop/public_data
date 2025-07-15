@@ -7,7 +7,6 @@ from tangos.live_calculation import NoResultsError
 import pynbody
 import numpy as np
 import scipy
-import math
 
 #Radial Momentum profile property for calculating in/outflow rates
 @pynbody.analysis.profile.Profile.profile_property
@@ -406,7 +405,7 @@ class LiveRadius(LivePropertyCalculation):
         z = ts.redshift
         a = 1.0 / (1.0 + z)
         denunit = self._munit/self._dunit**3
-        velunit = 8.0285 * math.sqrt(6.6743e-8 * denunit) * self._dunit
+        velunit = 8.0285 * np.sqrt(6.6743e-8 * denunit) * self._dunit
         hubunit = 10. * velunit / self._dunit
         self._h0 *= hubunit
 
@@ -677,7 +676,7 @@ class VelDispersionProfileEncl(HaloDensityProfile):
     '''
     enclosed velosity dispersion profiles
     '''
-    names = "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vrdisp_encl_stars_3d", "vrdisp_encl_gas_3d", "vrdisp_encl_dm_3d"
+    names = "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vdisp_encl_stars_3d", "vdisp_encl_gas_3d", "vdisp_encl_dm_3d"
 
     def __init__(self, simulation):
         super().__init__(simulation)

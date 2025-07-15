@@ -11,6 +11,14 @@ export PYTHONPATH=$SCRIPT_DIR
 
 echo $TANGOS_SIMULATION_FOLDER
 
+if [ -d $TANGOS_SIMULATION_FOLDER ]
+then
+    echo "Adding Data From" $TANGOS_SIMULATION_FOLDER
+else
+    echo "Simulation folder does not exist"
+    exit 1
+fi
+
 # Tangos won't import properties if PYTEST_CURRENT_TEST is set
 unset PYTEST_CURRENT_TEST
 
