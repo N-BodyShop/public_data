@@ -68,12 +68,12 @@ class InflowOutflow(HaloDensityProfile):
         halo.s['OxMassFrac']
 
         delta = self.plot_xdelta()
-        nbins = int(0.9*maxrad / delta)
-        maxrad = 0.1*maxrad + delta * nbins
+        nbins = int(maxrad / delta)
+        maxrad = delta * nbins
         oprof = pynbody.analysis.profile.Profile(halo.g[self.ofilt], type='lin', ndim=3,
-                                           min=0.1*maxrad, max=maxrad, nbins=nbins)
+                                           min=0, max=maxrad, nbins=nbins)
         iprof = pynbody.analysis.profile.Profile(halo.g[self.ifilt], type='lin', ndim=3,
-                                           min=0.1*maxrad, max=maxrad, nbins=nbins)
+                                           min=0, max=maxrad, nbins=nbins)
         mass_out  = (oprof['p_r']/delta).view(np.ndarray)
         mass_in   = (iprof['p_r']/delta).view(np.ndarray)
         metal_out = (oprof['p_r_metals']/delta).view(np.ndarray)
