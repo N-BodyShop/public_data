@@ -8,6 +8,10 @@ import pynbody
 import numpy as np
 import scipy
 
+# Replace NaN values with a substitute value in some list of arrays.
+def nan_remover(arrs, sub=0):
+    return [np.nan_to_num(arr, nan=sub) for arr in arrs]
+
 #Radial Momentum profile property for calculating in/outflow rates
 @pynbody.analysis.profile.Profile.profile_property
 def p_r_weighted(self, weight=None):
@@ -215,7 +219,7 @@ class MetalProfile(HaloDensityProfile):
 
     @centred_calculation
     def calculate(self, halo, existing_properties):
-        metals_gas, metals_star, fe_gas, fe_star, ox_gas, ox_star = self._get_profile(halo, existing_properties["max_radius"])
+        metals_gas, metals_star, fe_gas, fe_star, ox_gas, ox_star = nan_remover(self._get_profile(halo, existing_properties["max_radius"]))
         return metals_star, metals_gas, fe_star, fe_gas, ox_star, ox_gas
 
 
@@ -279,8 +283,8 @@ class ColdDenGasMetalProfile(HaloDensityProfile):
 
     @centred_calculation
     def calculate(self, halo, existing_properties):
-        cold_metal_pro, cold_fe_pro, cold_ox_pro = self._get_profile(halo.g,
-                                           existing_properties['max_radius'])
+        cold_metal_pro, cold_fe_pro, cold_ox_pro = nan_remover(self._get_profile(halo.g,
+                                           existing_properties['max_radius']))
         return cold_metal_pro, cold_fe_pro, cold_ox_pro
 
 class InstantaneousSFR(PynbodyPropertyCalculation):
