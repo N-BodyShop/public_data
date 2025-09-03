@@ -166,5 +166,6 @@ cython_debug/
 
 # Test Data
 testdata/
+testdata.tar.gz
 # sqlite DB from tangos
 *.db
