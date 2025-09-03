@@ -352,7 +352,8 @@ class MassEnclosedTemp(HaloDensityProfile):
                                                      type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
             two_pro = pynbody.analysis.profile.Profile(halo.g[twophase],
                                                      type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-            return one_proCG['mass_enc']+two_pro['massCold'].cumsum(), one_proWG['mass_enc'], one_proHG['mass_enc']+two_pro['massHot'].cumsum()
+            return (one_proCG['mass_enc']+pynbody.analysis.profile.weight_fn(two_pro, 'massCold').cumsum(), 
+                    one_proWG['mass_enc'], one_proHG['mass_enc'] + pynbody.analysis.profile.weight_fn(two_pro, 'massHot').cumsum())
         elif'MassHot' in halo.loadable_keys():
             twophase = pynbody.filt.HighPass('MassHot', 0)
             halo.g['MassCold'] = halo.g['mass'] - halo.g['MassHot']
@@ -364,7 +365,8 @@ class MassEnclosedTemp(HaloDensityProfile):
                                                      type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
             two_pro = pynbody.analysis.profile.Profile(halo.g[twophase],
                                                      type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-            return one_proCG['mass_enc']+two_pro['MassCold'].cumsum(), one_proWG['mass_enc'], one_proHG['mass_enc']+two_pro['MassHot'].cumsum()
+            return (one_proCG['mass_enc']+pynbody.analysis.profile.weight_fn(two_pro, 'MassCold').cumsum(), 
+                    one_proWG['mass_enc'], one_proHG['mass_enc'] + pynbody.analysis.profile.weight_fn(two_pro, 'MassHot').cumsum())
         else:
             proCG = pynbody.analysis.profile.Profile(halo.g[pynbody.filt.LowPass("temp", 1.e5)],
                                                      type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
