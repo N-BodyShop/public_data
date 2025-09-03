@@ -79,13 +79,13 @@ class InflowOutflow(HaloDensityProfile):
         iprof = pynbody.analysis.profile.Profile(halo.g[self.ifilt], type='lin', ndim=3,
                                            min=0, max=maxrad, nbins=nbins)
         mass_out  = (oprof['p_r']/delta).view(np.ndarray)
-        mass_in   = (iprof['p_r']/delta).view(np.ndarray)
+        mass_in   = (-iprof['p_r']/delta).view(np.ndarray)
         metal_out = (oprof['p_r_metals']/delta).view(np.ndarray)
-        metal_in  = (iprof['p_r_metals']/delta).view(np.ndarray)
+        metal_in  = (-iprof['p_r_metals']/delta).view(np.ndarray)
         Ox_out    = (oprof['p_r_Ox']/delta).view(np.ndarray)
-        Ox_in     = (iprof['p_r_Ox']/delta).view(np.ndarray)
+        Ox_in     = (-iprof['p_r_Ox']/delta).view(np.ndarray)
         Fe_out    = (oprof['p_r_Fe']/delta).view(np.ndarray)
-        Fe_in     = (iprof['p_r_Fe']/delta).view(np.ndarray)
+        Fe_in     = (-iprof['p_r_Fe']/delta).view(np.ndarray)
         return mass_out, mass_in, metal_out, metal_in, Ox_out, Ox_in, Fe_out, Fe_in
         
     @centred_calculation
