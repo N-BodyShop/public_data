@@ -164,6 +164,13 @@ def test_metal_profiles():
         assert(np.all(snap.halos[0]['cold_gas_Ox_profile'] <= 1))
         assert(np.all(snap.halos[0]['star_Ox_profile'] >= 0))
         assert(np.all(snap.halos[0]['star_Ox_profile'] <= 1))
+        # Metal fractions should always be greater than individual species fractions
+        assert(np.all(snap.halos[0]['gas_metal_profile'] >= snap.halos[0]['gas_Fe_profile']))
+        assert(np.all(snap.halos[0]['gas_metal_profile'] >= snap.halos[0]['gas_Ox_profile']))
+        assert(np.all(snap.halos[0]['cold_gas_metal_profile'] >= snap.halos[0]['cold_gas_Fe_profile']))
+        assert(np.all(snap.halos[0]['cold_gas_metal_profile'] >= snap.halos[0]['cold_gas_Ox_profile']))
+        assert(np.all(snap.halos[0]['star_metal_profile'] >= snap.halos[0]['star_Fe_profile']))
+        assert(np.all(snap.halos[0]['star_metal_profile'] >= snap.halos[0]['star_Ox_profile']))
 
         # Check that the metal fractions match the snapshot totals.
         star_masses = snap.halos[0]['star_mass_profile']
@@ -227,4 +234,61 @@ def test_density_profiles():
         h[0].s['mass'].in_units('Msol').sum(), rtol=1e-2)
         np.testing.assert_allclose((snap.halos[0]['gas_density_profile']*shell_vol).sum(),
         h[0].g['mass'].in_units('Msol').sum(), rtol=1e-2)
+    assert(ran)
+
+def test_inflow_outflow():
+    """
+    Check that the inflow and outflow profiles match ones calculated straight from pynbody
+    """
+    ran = False
+    for tsim in tangos.all_simulations():
+        ran = True
+        snap = tsim.timesteps[0]
+        sim = pyn.load(snap.filename)
+        h = sim.halos()
+        pyn.analysis.center(h[0])
+        res = tsim['approx_resolution_kpc']
+        # Check that all values are positive
+        assert(np.all(snap.halos[0]['mass_inflow_profile'] >= 0))
+        assert(np.all(snap.halos[0]['mass_outflow_profile'] >= 0))
+        assert(np.all(snap.halos[0]['metal_inflow_profile'] >= 0))
+        assert(np.all(snap.halos[0]['metal_outflow_profile'] >= 0))
+        assert(np.all(snap.halos[0]['Fe_inflow_profile'] >= 0))
+        assert(np.all(snap.halos[0]['Fe_outflow_profile'] >= 0))
+        assert(np.all(snap.halos[0]['Ox_inflow_profile'] >= 0))
+        assert(np.all(snap.halos[0]['Ox_outflow_profile'] >= 0))
+        # Metal masses should never be larger than the total mass
+        assert(np.all(snap.halos[0]['mass_inflow_profile'] >= snap.halos[0]['metal_inflow_profile']))
+        assert(np.all(snap.halos[0]['mass_outflow_profile'] >= snap.halos[0]['metal_outflow_profile']))
+        assert(np.all(snap.halos[0]['metal_inflow_profile'] >= snap.halos[0]['Fe_inflow_profile']))
+        assert(np.all(snap.halos[0]['metal_outflow_profile'] >= snap.halos[0]['Fe_outflow_profile']))
+        assert(np.all(snap.halos[0]['metal_inflow_profile'] >= snap.halos[0]['Ox_inflow_profile']))
+        assert(np.all(snap.halos[0]['metal_outflow_profile'] >= snap.halos[0]['Ox_outflow_profile']))
+        # Check that our totals match what is in the snapshot
+        iflow = h[0].g[h[0].g['vr'] < 0]
+        oflow = h[0].g[h[0].g['vr'] > 0]
+        np.testing.assert_allclose(snap.halos[0]['mass_inflow_profile'].sum(),
+                                   (-iflow['vr'].in_units('kpc yr**-1')*iflow['mass'].in_units('Msol')).sum()/res, 
+                                   rtol=2e-2) 
+        np.testing.assert_allclose(snap.halos[0]['mass_outflow_profile'].sum(),
+                                   (oflow['vr'].in_units('kpc yr**-1')*oflow['mass'].in_units('Msol')).sum()/res, 
+                                   rtol=2e-2) 
+        np.testing.assert_allclose(snap.halos[0]['metal_inflow_profile'].sum(),
+                                   (-iflow['vr'].in_units('kpc yr**-1')*iflow['metals']*iflow['mass'].in_units('Msol')).sum()/res, 
+                                   rtol=1e-1) 
+        np.testing.assert_allclose(snap.halos[0]['metal_outflow_profile'].sum(),
+                                   (oflow['vr'].in_units('kpc yr**-1')*oflow['metals']*oflow['mass'].in_units('Msol')).sum()/res, 
+                                   rtol=1e-1) 
+        np.testing.assert_allclose(snap.halos[0]['Fe_inflow_profile'].sum(),
+                                   (-iflow['vr'].in_units('kpc yr**-1')*iflow['FeMassFrac']*iflow['mass'].in_units('Msol')).sum()/res, 
+                                   rtol=1e-1) 
+        np.testing.assert_allclose(snap.halos[0]['Fe_outflow_profile'].sum(),
+                                   (oflow['vr'].in_units('kpc yr**-1')*oflow['FeMassFrac']*oflow['mass'].in_units('Msol')).sum()/res, 
+                                   rtol=1e-1) 
+        np.testing.assert_allclose(snap.halos[0]['Ox_inflow_profile'].sum(),
+                                   (-iflow['vr'].in_units('kpc yr**-1')*iflow['OxMassFrac']*iflow['mass'].in_units('Msol')).sum()/res, 
+                                   rtol=1e-1) 
+        np.testing.assert_allclose(snap.halos[0]['Ox_outflow_profile'].sum(),
+                                   (oflow['vr'].in_units('kpc yr**-1')*oflow['OxMassFrac']*oflow['mass'].in_units('Msol')).sum()/res, 
+                                   rtol=1e-1) 
     assert(ran)
