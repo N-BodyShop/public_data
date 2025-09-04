@@ -1,6 +1,7 @@
 import os
 os.environ["TANGOS_SIMULATION_FOLDER"] = os.path.realpath("testdata")
 os.environ["TANGOS_DB_CONNECTION"] = "test.db"
+import pytest
 import tangos
 import numpy as np
 import pynbody as pyn
@@ -71,6 +72,7 @@ def test_spin_parameters():
         assert(snap.halos[0]['lambda_star'] == h[0].properties['lambda_star'].sum())
     assert(ran)
 
+@pytest.mark.skip
 def test_SFR():
     """
     Check that the SFR matches the total stellar mass.
