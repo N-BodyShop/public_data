@@ -632,7 +632,7 @@ class VelDispersionProfile(HaloDensityProfile):
 
         halo['vel'] -= vcen
 
-        sigS, sigG, sigDM, sigS3D, sigG3D, sigDM3D = self.rstat(halo,maxrad)
+        sigS, sigG, sigDM, sigS3D, sigG3D, sigDM3D = nan_remover(self.rstat(halo,maxrad))
 
         halo['vel'] += vcen
 
@@ -710,10 +710,10 @@ class VelDispersionProfileEncl(HaloDensityProfile):
             sigG3d = proG['v_disp_tot_encl']
         if len(halo.s)>5:
             sigS = proS['vr_disp_encl']
-            sigS3d = proG['v_disp_tot_encl']
+            sigS3d = proS['v_disp_tot_encl']
         if len(halo.dm)>5:
             sigDM = proDM['vr_disp_encl']
-            sigDM3d = proG['v_disp_tot_encl']
+            sigDM3d = proDM['v_disp_tot_encl']
 
         return sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d
 
@@ -727,7 +727,7 @@ class VelDispersionProfileEncl(HaloDensityProfile):
 
         halo['vel'] -= vcen
 
-        sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d = self.rstat(halo,maxrad)
+        sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d = nan_remover(self.rstat(halo,maxrad))
 
         halo['vel'] += vcen
 
