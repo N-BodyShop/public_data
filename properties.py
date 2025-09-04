@@ -647,7 +647,6 @@ def vr_disp_encl(self):
     weight = self.sim[self._weight_by].view(np.ndarray)
     for i in range(self.nbins):
         cumind = np.append(cumind,self.binind[i]).astype(np.int64)
-        # use = np.where(subs.g['temp'] > temp_cut)[0]
         total_weight = weight[cumind].sum()
         mean_sq = ((vr*weight)[cumind].sum()/total_weight)**2
         sq_mean = (vr**2*weight)[cumind].sum()/total_weight
@@ -664,7 +663,6 @@ def v_disp_tot_encl(self):
     weight = self.sim[self._weight_by].view(np.ndarray)
     for i in range(self.nbins):
         cumind = np.append(cumind,self.binind[i]).astype(np.int64)
-        # use = np.where(subs.g['temp'] > temp_cut)[0]
         total_weight = weight[cumind].sum()
         mean_sq_x = ((vx*weight)[cumind].sum()/total_weight)**2
         sq_mean_x = (vx**2*weight)[cumind].sum()/total_weight
