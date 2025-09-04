@@ -17,8 +17,12 @@ def test_max_radius():
         ran = True
         snap = tsim.timesteps[0]
         sim = pyn.load(snap.filename)
+        sim.physical_units()
         h = sim.halos()
-        pyn.analysis.center(h[0])
+        cen = snap.halos[0]['shrink_center']
+        h[0]['pos'] -= cen
+        vcen = pyn.analysis.halo.vel_center(h[0], cen_size='5 kpc', retcen=True)
+        h[0]['vel'] -= vcen
         np.testing.assert_allclose(snap.halos[0]['max_radius'], h[0]['r'].max().in_units('kpc'), rtol=REL_TOL)
     assert(ran)
 
@@ -74,7 +78,6 @@ def test_spin_parameters():
         assert(snap.halos[0]['lambda_star'] == h[0].properties['lambda_star'].sum())
     assert(ran)
 
-@pytest.mark.skip
 def test_SFR():
     """
     Check that the SFR matches the total stellar mass.
@@ -84,11 +87,42 @@ def test_SFR():
         ran = True
         snap = tsim.timesteps[0]
         sim = pyn.load(snap.filename)
+        sim.physical_units()
         h = sim.halos()
+        dCstar = tsim.get('dCStar', 0.05)
+        dPhysDenMin = tsim.get('dPhysDenMin',0.1)*pyn.units.m_p/(pyn.units.cm**3)
+        dTempMax = tsim.get('dTempMax', 1.5e4)
+        H2 = "COOLING_MOLECULARH" in tsim.get("macros", "")
+        dense_filter = pyn.filt.HighPass('rho', dPhysDenMin)
+        cold_filter = pyn.filt.LowPass('temp', dTempMax)
+        eligible = dense_filter & cold_filter
+        if 'massHot' in sim.loadable_keys():
+            eligible &= ~pyn.filt.HighPass('massHot', 0)
+        elif 'MassHot' in halo.loadable_keys():
+            eligible &= ~pyn.filt.HighPass('MassHot', 0)
+        sfg = h[0].g[eligible]
+        tdyn = 1.0/np.sqrt(4*np.pi*pyn.units.G*sfg['rho'])
+        sfr = dCstar*(sfg['mass']/tdyn).in_units('Msol yr**-1')
+        if H2:
+            sfr *= sfg['H2']
+        assert(sfr.sum() == snap.halos[0]['instantaneous_SFR'])
+    assert(ran)
+
+def test_SFH():
+    """
+    Check that the SFR matches the total stellar mass.
+    """
+    ran = False
+    for tsim in tangos.all_simulations():
+        ran = True
+        snap = tsim.timesteps[0]
+        sim = pyn.load(snap.filename)
+        h = sim.halos()
+        sim.physical_units()
         assert(np.all(snap.halos[0]['SFR_histogram'] >= 0))
-        SFR_hist_mass = snap.halos[0]['SFR_histogram'].mean()*snap.time_gyr*1e9
-        snap_massform = h[0].s['massform'].in_units('Msol').sum()
-        assert(SFR_hist_mass == snap_massform)
+        # Only the last 500 Myr are stored by default with tangos when a single snapshot is used.
+        np.testing.assert_allclose(snap.halos[0]['SFR_histogram'].mean()*snap.time_gyr*1e9, 
+        h[0].s[h[0].s['tform'].in_units('Myr') > sim.properties['time'].in_units('Myr')-500]['massform'].in_units('Msol').sum(), rtol=REL_TOL)
     assert(ran)
 
 def test_mass_profiles():
@@ -249,8 +283,12 @@ def test_inflow_outflow():
         ran = True
         snap = tsim.timesteps[0]
         sim = pyn.load(snap.filename)
+        sim.physical_units()
         h = sim.halos()
-        pyn.analysis.center(h[0])
+        cen = snap.halos[0]['shrink_center']
+        h[0]['pos'] -= cen
+        vcen = pyn.analysis.halo.vel_center(h[0], cen_size=snap.halos[0]['max_radius'], retcen=True)
+        h[0]['vel'] -= vcen
         res = tsim['approx_resolution_kpc']
         # Check that all values are positive
         assert(np.all(snap.halos[0]['mass_inflow_profile'] >= 0))
