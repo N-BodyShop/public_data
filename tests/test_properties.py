@@ -6,6 +6,8 @@ import tangos
 import numpy as np
 import pynbody as pyn
 
+REL_TOL=5e-2 # No calculations can produce results more than 5% different than what's in the database
+
 def test_max_radius():
     """
     Check that the tangos max_radius matches the value loaded straight from pynbody
@@ -17,7 +19,7 @@ def test_max_radius():
         sim = pyn.load(snap.filename)
         h = sim.halos()
         pyn.analysis.center(h[0])
-        np.testing.assert_allclose(snap.halos[0]['max_radius'], h[0]['r'].max().in_units('kpc'), rtol=1e-2)
+        np.testing.assert_allclose(snap.halos[0]['max_radius'], h[0]['r'].max().in_units('kpc'), rtol=REL_TOL)
     assert(ran)
 
 def test_center():
@@ -31,7 +33,7 @@ def test_center():
         sim = pyn.load(snap.filename)
         h = sim.halos()
         np.testing.assert_allclose(snap.halos[0]['shrink_center'],
-        h[0]['pos'].mean(axis=0).in_units('kpc'), rtol=1e-2)
+        h[0]['pos'].mean(axis=0).in_units('kpc'), rtol=REL_TOL)
     assert(ran)
 
 def test_masses():
@@ -120,17 +122,17 @@ def test_mass_profiles():
 
         # The profile masses should match what's in the raw snapshot
         np.testing.assert_allclose(snap.halos[0]['cold_gas_mass_profile'][-1],
-        coldmass, rtol=1e-2)
+        coldmass, rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['warm_gas_mass_profile'][-1],
-        warmmass, rtol=1e-2)
+        warmmass, rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['hot_gas_mass_profile'][-1],
-        hotmass, rtol=1e-2)
+        hotmass, rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['gas_mass_profile'][-1],
-        np.sum(h[0].g['mass'].in_units('Msol')), rtol=1e-2)
+        np.sum(h[0].g['mass'].in_units('Msol')), rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['star_mass_profile'][-1],
-        np.sum(h[0].s['mass'].in_units('Msol')), rtol=1e-2)
+        np.sum(h[0].s['mass'].in_units('Msol')), rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['dm_mass_profile'][-1],
-        np.sum(h[0].d['mass'].in_units('Msol')), rtol=1e-2)
+        np.sum(h[0].d['mass'].in_units('Msol')), rtol=REL_TOL)
     assert(ran)
 
 def test_metal_profiles():
@@ -182,17 +184,17 @@ def test_metal_profiles():
         cold_gas_masses = snap.halos[0]['cold_gas_mass_profile']
         cold_gas_masses[1:] -= cold_gas_masses[:-1]
         np.testing.assert_allclose((h[0].s['mass'].in_units('Msol')*h[0].s['metals']).sum(),
-        (star_masses*snap.halos[0]['star_metal_profile']).sum(), rtol=1e-2)
+        (star_masses*snap.halos[0]['star_metal_profile']).sum(), rtol=REL_TOL)
         np.testing.assert_allclose((h[0].g['mass'].in_units('Msol')*h[0].g['metals']).sum(),
-        (gas_masses*snap.halos[0]['gas_metal_profile']).sum(), rtol=1e-2)
+        (gas_masses*snap.halos[0]['gas_metal_profile']).sum(), rtol=REL_TOL)
         np.testing.assert_allclose((h[0].s['mass'].in_units('Msol')*h[0].s['FeMassFrac']).sum(),
-        (star_masses*snap.halos[0]['star_Fe_profile']).sum(), rtol=1e-2)
+        (star_masses*snap.halos[0]['star_Fe_profile']).sum(), rtol=REL_TOL)
         np.testing.assert_allclose((h[0].g['mass'].in_units('Msol')*h[0].g['FeMassFrac']).sum(),
-        (gas_masses*snap.halos[0]['gas_Fe_profile']).sum(), rtol=1e-2)
+        (gas_masses*snap.halos[0]['gas_Fe_profile']).sum(), rtol=REL_TOL)
         np.testing.assert_allclose((h[0].s['mass'].in_units('Msol')*h[0].s['OxMassFrac']).sum(),
-        (star_masses*snap.halos[0]['star_Ox_profile']).sum(), rtol=1e-2)
+        (star_masses*snap.halos[0]['star_Ox_profile']).sum(), rtol=REL_TOL)
         np.testing.assert_allclose((h[0].g['mass'].in_units('Msol')*h[0].g['OxMassFrac']).sum(),
-        (gas_masses*snap.halos[0]['gas_Ox_profile']).sum(), rtol=1e-2)
+        (gas_masses*snap.halos[0]['gas_Ox_profile']).sum(), rtol=REL_TOL)
     assert(ran)
 
 def test_surface_brightness():
@@ -213,7 +215,7 @@ def test_surface_brightness():
         pkeys = ['sb,'+x for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
         tkeys = [x+'_surface_brightness' for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
         for pk,tk in zip(pkeys,tkeys):
-            np.testing.assert_allclose(snap.halos[0][tk], ps[pk], rtol=5e-2)
+            np.testing.assert_allclose(snap.halos[0][tk], ps[pk], rtol=REL_TOL)
     assert(ran)
 
 def test_density_profiles():
@@ -231,11 +233,11 @@ def test_density_profiles():
         shell_vol = np.power(np.arange(res,int(rmax/res)*res+res,res),3)*np.pi*4/3
         shell_vol[1:] -= shell_vol[:-1]
         np.testing.assert_allclose((snap.halos[0]['dm_density_profile']*shell_vol).sum(),
-        h[0].d['mass'].in_units('Msol').sum(), rtol=1e-2)
+        h[0].d['mass'].in_units('Msol').sum(), rtol=REL_TOL)
         np.testing.assert_allclose((snap.halos[0]['star_density_profile']*shell_vol).sum(),
-        h[0].s['mass'].in_units('Msol').sum(), rtol=1e-2)
+        h[0].s['mass'].in_units('Msol').sum(), rtol=REL_TOL)
         np.testing.assert_allclose((snap.halos[0]['gas_density_profile']*shell_vol).sum(),
-        h[0].g['mass'].in_units('Msol').sum(), rtol=1e-2)
+        h[0].g['mass'].in_units('Msol').sum(), rtol=REL_TOL)
     assert(ran)
 
 def test_inflow_outflow():
@@ -271,26 +273,86 @@ def test_inflow_outflow():
         oflow = h[0].g[h[0].g['vr'] > 0]
         np.testing.assert_allclose(snap.halos[0]['mass_inflow_profile'].sum(),
                                    (-iflow['vr'].in_units('kpc yr**-1')*iflow['mass'].in_units('Msol')).sum()/res, 
-                                   rtol=2e-2) 
+                                   rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['mass_outflow_profile'].sum(),
                                    (oflow['vr'].in_units('kpc yr**-1')*oflow['mass'].in_units('Msol')).sum()/res, 
-                                   rtol=2e-2) 
+                                   rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['metal_inflow_profile'].sum(),
                                    (-iflow['vr'].in_units('kpc yr**-1')*iflow['metals']*iflow['mass'].in_units('Msol')).sum()/res, 
-                                   rtol=1e-1) 
+                                   rtol=REL_TOL) 
         np.testing.assert_allclose(snap.halos[0]['metal_outflow_profile'].sum(),
                                    (oflow['vr'].in_units('kpc yr**-1')*oflow['metals']*oflow['mass'].in_units('Msol')).sum()/res, 
-                                   rtol=1e-1) 
+                                   rtol=REL_TOL) 
         np.testing.assert_allclose(snap.halos[0]['Fe_inflow_profile'].sum(),
                                    (-iflow['vr'].in_units('kpc yr**-1')*iflow['FeMassFrac']*iflow['mass'].in_units('Msol')).sum()/res, 
-                                   rtol=1e-1) 
+                                   rtol=REL_TOL) 
         np.testing.assert_allclose(snap.halos[0]['Fe_outflow_profile'].sum(),
                                    (oflow['vr'].in_units('kpc yr**-1')*oflow['FeMassFrac']*oflow['mass'].in_units('Msol')).sum()/res, 
-                                   rtol=1e-1) 
+                                   rtol=REL_TOL) 
         np.testing.assert_allclose(snap.halos[0]['Ox_inflow_profile'].sum(),
                                    (-iflow['vr'].in_units('kpc yr**-1')*iflow['OxMassFrac']*iflow['mass'].in_units('Msol')).sum()/res, 
-                                   rtol=1e-1) 
+                                   rtol=REL_TOL) 
         np.testing.assert_allclose(snap.halos[0]['Ox_outflow_profile'].sum(),
                                    (oflow['vr'].in_units('kpc yr**-1')*oflow['OxMassFrac']*oflow['mass'].in_units('Msol')).sum()/res, 
-                                   rtol=1e-1) 
+                                   rtol=REL_TOL) 
+    assert(ran)
+
+def test_vrdisp():
+    """
+    Check that the velocity dispersion calculations are sane.
+    """
+    ran = False
+    for tsim in tangos.all_simulations():
+        ran = True
+        snap = tsim.timesteps[0]
+        sim = pyn.load(snap.filename)
+        sim.physical_units()
+        h = sim.halos()
+        res = tsim['approx_resolution_kpc']
+        cen = snap.halos[0]['shrink_center']
+        h[0]['pos'] -= cen
+        vcen = pyn.analysis.halo.vel_center(h[0], cen_size='5 kpc', retcen=True)
+        h[0]['vel'] -= vcen
+        filt = pyn.filt.LowPass('r', res)
+        # The radial velocity dispersion must always be positive
+        assert(np.all(snap.halos[0]['vrdisp_stars'] >= 0))
+        assert(np.all(snap.halos[0]['vrdisp_gas'] >= 0))
+        assert(np.all(snap.halos[0]['vrdisp_dm'] >= 0))
+        assert(np.all(snap.halos[0]['vrdisp_encl_stars'] >= 0))
+        assert(np.all(snap.halos[0]['vrdisp_encl_gas'] >= 0))
+        assert(np.all(snap.halos[0]['vrdisp_encl_dm'] >= 0))
+        assert(np.all(snap.halos[0]['vdisp_stars_3d'] >= 0))
+        assert(np.all(snap.halos[0]['vdisp_gas_3d'] >= 0))
+        assert(np.all(snap.halos[0]['vdisp_dm_3d'] >= 0))
+        assert(np.all(snap.halos[0]['vdisp_encl_stars_3d'] >= 0))
+        assert(np.all(snap.halos[0]['vdisp_encl_gas_3d'] >= 0))
+        assert(np.all(snap.halos[0]['vdisp_encl_dm_3d'] >= 0))
+
+        # Check that the dispersion results match the snapshot
+        np.testing.assert_allclose(snap.halos[0]['vrdisp_stars'][0],
+        np.std(h[0][filt].s['vr'].in_units('km s**-1')), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vrdisp_dm'][0],
+        np.std(h[0][filt].d['vr'].in_units('km s**-1')), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vrdisp_gas'][0],
+        np.std(h[0][filt].g['vr'].in_units('km s**-1')), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vdisp_stars_3d'][0],
+        np.linalg.norm(np.std(h[0][filt].s['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vdisp_dm_3d'][0],
+        np.linalg.norm(np.std(h[0][filt].d['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vdisp_gas_3d'][0],
+        np.linalg.norm(np.std(h[0][filt].g['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        # Check that the enclosed dispersion results match the snapshot
+        np.testing.assert_allclose(snap.halos[0]['vrdisp_encl_stars'][-1],
+        np.std(h[0].s['vr'].in_units('km s**-1')), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vrdisp_encl_dm'][-1],
+        np.std(h[0].d['vr'].in_units('km s**-1')), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vrdisp_encl_gas'][-1],
+        np.std(h[0].g['vr'].in_units('km s**-1')), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vdisp_encl_stars_3d'][-1],
+        np.linalg.norm(np.std(h[0].s['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vdisp_encl_dm_3d'][-1],
+        np.linalg.norm(np.std(h[0].d['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.testing.assert_allclose(snap.halos[0]['vdisp_encl_gas_3d'][-1],
+        np.linalg.norm(np.std(h[0].g['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+
     assert(ran)
