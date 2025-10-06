@@ -733,13 +733,28 @@ class VelDispersionProfileEncl(HaloDensityProfile):
 
         return sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d
 
-class BHAccAveHistogram(BHAccHistogram):
+class BHAccAveHistogram(TimeChunkedProperty):
+
+    requires_particle_data = True
     
     names = "BH_mdot_histogram_ave",
 
     def requires_property(self):
         return []
+    
+    def preloop(self, f, db_timestep):
+        if BlackHolesLog.can_load(db_timestep.filename):
+            self.log = BlackHolesLog.get_existing_or_new(db_timestep.filename)
+        elif ShortenedOrbitLog.can_load(db_timestep.filename):
+            self.log = ShortenedOrbitLog.get_existing_or_new(db_timestep.filename)
+        else:
+            raise RuntimeError("cannot find recognizable log file")
+        
+    def plot_xlabel(self):
+        return "t/Gyr"
 
+    def plot_ylabel(self):
+        return r"$\dot{M}/M_{\odot}\,yr^{-1}$"
 
     def calculate(self, halo, properties):
         grid_tmax_Gyr = 20.0  # calculate up to 20 Gyr
