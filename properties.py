@@ -7,6 +7,7 @@ from tangos.live_calculation import NoResultsError
 import pynbody
 import numpy as np
 import scipy
+from tangos.input_handlers.changa_bh import BlackHolesLog, ShortenedOrbitLog
 
 # Replace NaN values with a substitute value in some list of arrays.
 def nan_remover(arrs, sub=0):
