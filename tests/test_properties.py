@@ -374,11 +374,11 @@ def test_vrdisp():
         np.testing.assert_allclose(snap.halos[0]['vrdisp_gas'][0],
         np.std(h[0][filt].g['vr'].in_units('km s**-1')), rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['vdisp_stars_3d'][0],
-        np.linalg.norm(np.std(h[0][filt].s['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.linalg.norm(np.array(np.std(h[0][filt].s['vel'].in_units('km s**-1'),axis=0))), rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['vdisp_dm_3d'][0],
-        np.linalg.norm(np.std(h[0][filt].d['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.linalg.norm(np.array(np.std(h[0][filt].d['vel'].in_units('km s**-1'),axis=0))), rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['vdisp_gas_3d'][0],
-        np.linalg.norm(np.std(h[0][filt].g['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.linalg.norm(np.array(np.std(h[0][filt].g['vel'].in_units('km s**-1'),axis=0))), rtol=REL_TOL)
         # Check that the enclosed dispersion results match the snapshot
         np.testing.assert_allclose(snap.halos[0]['vrdisp_encl_stars'][-1],
         np.std(h[0].s['vr'].in_units('km s**-1')), rtol=REL_TOL)
@@ -387,10 +387,10 @@ def test_vrdisp():
         np.testing.assert_allclose(snap.halos[0]['vrdisp_encl_gas'][-1],
         np.std(h[0].g['vr'].in_units('km s**-1')), rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['vdisp_encl_stars_3d'][-1],
-        np.linalg.norm(np.std(h[0].s['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.linalg.norm(np.array(np.std(h[0].s['vel'].in_units('km s**-1'),axis=0))), rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['vdisp_encl_dm_3d'][-1],
-        np.linalg.norm(np.std(h[0].d['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.linalg.norm(np.array(np.std(h[0].d['vel'].in_units('km s**-1'),axis=0))), rtol=REL_TOL)
         np.testing.assert_allclose(snap.halos[0]['vdisp_encl_gas_3d'][-1],
-        np.linalg.norm(np.std(h[0].g['vel'].in_units('km s**-1'),axis=0)), rtol=REL_TOL)
+        np.linalg.norm(np.array(np.std(h[0].g['vel'].in_units('km s**-1'),axis=0))), rtol=REL_TOL)
 
     assert(ran)

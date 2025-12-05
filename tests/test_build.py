@@ -3,8 +3,8 @@ import requests
 import subprocess
 import pytest
 
-def build(simname):
-    return subprocess.run(['/bin/bash', 'build_tangos_DB.sh', simname, 'test.db'])
+def build(conf):
+    return subprocess.run(['/bin/bash', 'build_tangos_DB.sh', conf])
 
 def get_testdata():
     url = "https://nbody.shop/testdata.tar.gz"
@@ -22,4 +22,4 @@ def get_testdata():
 @pytest.mark.order("first")
 def test_build():
     get_testdata()
-    build('testdata').check_returncode()
+    build('test.conf').check_returncode()
