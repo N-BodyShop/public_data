@@ -98,7 +98,7 @@ def test_SFR():
         eligible = dense_filter & cold_filter
         if 'massHot' in sim.loadable_keys():
             eligible &= ~pyn.filt.HighPass('massHot', 0)
-        elif 'MassHot' in halo.loadable_keys():
+        elif 'MassHot' in sim.loadable_keys():
             eligible &= ~pyn.filt.HighPass('MassHot', 0)
         sfg = h[0].g[eligible]
         tdyn = 1.0/np.sqrt(4*np.pi*pyn.units.G*sfg['rho'])
@@ -181,7 +181,6 @@ def test_metal_profiles():
         h = sim.halos()
         twophase = pyn.filt.HighPass('massHot', 0)
         coldfilt = pyn.filt.LowPass('temp', 1.e5)
-        sim.g['massCold'] = sim.g['mass'] - sim.g['massHot']
         # Metallicity is between zero and one
         assert(np.all(snap.halos[0]['gas_metal_profile'] >= 0))
         assert(np.all(snap.halos[0]['gas_metal_profile'] <= 1))

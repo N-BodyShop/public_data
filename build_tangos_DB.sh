@@ -6,9 +6,43 @@ then
     exit 1
 fi
 
+# Load and process the config file
 export TANGOS_PROPERTY_MODULES=properties
 export $(cat $1 | grep -v '^#' | xargs)
 export TANGOS_SIMULATION_FOLDER=$(realpath $TANGOS_SIMULATION_FOLDER)
+
+
+if [ -z $MIN_GAS ]
+then
+    export MIN_GAS=0
+fi
+
+if [ -z $MIN_STAR ]
+then
+    export MIN_STAR=0
+fi
+
+if [ -z $NPROCS ]
+then
+    echo "Running in serial mode.  This may be slow!"
+else
+    if [ $MPI ]
+    then
+        export PARALLEL="--backend=mpi4py"
+        export RUNNER="mpirun -np "$NPROCS
+        if [ $SERVER ]
+        then
+            export LOAD_MODE="--load-mode=server"
+        fi
+    else
+        export PARALLEL="--backend=multiprocessing-"$NPROCS
+        if [ $SERVER ]
+        then
+            export LOAD_MODE="--load-mode=server-shared-mem"
+        fi
+    fi
+fi
+
 
 # Get my own directory
 SCRIPT_DIR=$(dirname "$0")
@@ -31,7 +65,7 @@ unset PYTEST_CURRENT_TEST
 # Import the data
 for i in $TANGOS_SIMULATION_FOLDER/*
 do
-    tangos add `basename $i`
+    tangos add `basename $i` 
 done
 
 
@@ -39,11 +73,10 @@ done
 $SCRIPT_DIR/set_simulation_parameters.py
 
 # Link to build the merger tree
-tangos link
-
+$RUNNER tangos link $PARALLEL
 
 # Import AHF Halo catalogue properties
 tangos import-properties `cat $SCRIPT_DIR/import_properties | grep -v '^#'`
 
 # Write galaxy properties
-tangos write `cat $SCRIPT_DIR/write_properties | grep -v '^#'` --include-only="NGas()>$MIN_GAS" --include-only="NStar()>$MIN_STAR"
+$RUNNER tangos write `cat $SCRIPT_DIR/write_properties | grep -v '^#'` --include-only="NGas()>$MIN_GAS" --include-only="NStar()>$MIN_STAR" $PARALLEL $LOAD_MODE
