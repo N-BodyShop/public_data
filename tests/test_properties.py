@@ -1,6 +1,4 @@
 import os
-os.environ["TANGOS_SIMULATION_FOLDER"] = os.path.realpath("testdata")
-os.environ["TANGOS_DB_CONNECTION"] = "test.db"
 import pytest
 import tangos
 import numpy as np
@@ -8,7 +6,7 @@ import pynbody as pyn
 
 REL_TOL=5e-2 # No calculations can produce results more than 5% different than what's in the database
 
-def test_max_radius():
+def test_max_radius(pyn_snaps):
     """
     Check that the tangos max_radius matches the value loaded straight from pynbody
     """
@@ -16,9 +14,8 @@ def test_max_radius():
     for tsim in tangos.all_simulations():
         ran = True
         snap = tsim.timesteps[0]
-        sim = pyn.load(snap.filename)
-        sim.physical_units()
-        h = sim.halos()
+        sim = pyn_snaps[0][snap.filename]
+        h = pyn_snaps[1][snap.filename]
         cen = snap.halos[0]['shrink_center']
         h[0]['pos'] -= cen
         vcen = pyn.analysis.halo.vel_center(h[0], cen_size='5 kpc', retcen=True)
