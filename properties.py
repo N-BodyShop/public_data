@@ -587,7 +587,7 @@ class VelDispersionProfile(HaloDensityProfile):
     '''
     dispersion of stars, gas and dm profiles
     '''
-    names = "vrdisp_stars", "vrdisp_gas", "vrdisp_dm", "vdisp_stars_3d", "vdisp_gas_3d", "vdisp_dm_3d"
+    names = "vrdisp_star", "vrdisp_gas", "vrdisp_dm", "vdisp_star_3d", "vdisp_gas_3d", "vdisp_dm_3d"
 
     def __init__(self, simulation):
         super().__init__(simulation)
@@ -680,7 +680,7 @@ class VelDispersionProfileEncl(HaloDensityProfile):
     '''
     enclosed velosity dispersion profiles
     '''
-    names = "vrdisp_encl_stars", "vrdisp_encl_gas", "vrdisp_encl_dm", "vdisp_encl_stars_3d", "vdisp_encl_gas_3d", "vdisp_encl_dm_3d"
+    names = "vrdisp_encl_star", "vrdisp_encl_gas", "vrdisp_encl_dm", "vdisp_encl_star_3d", "vdisp_encl_gas_3d", "vdisp_encl_dm_3d"
 
     def __init__(self, simulation):
         super().__init__(simulation)
