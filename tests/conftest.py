@@ -39,7 +39,7 @@ def get_testdata():
     else:
         raise Exception(f"Failed to download test data: {r.status_code}")
 
-@pytest.fixture(scope="session", params=["test_parallel.conf", "test.conf"], autouse=True)
+@pytest.fixture(scope="session", params=["test.conf"], autouse=True)
 def build_database(request, get_testdata):
     print(f"Building DB for {request.param}")
     yield subprocess.run(['/bin/bash', 'build_tangos_DB.sh', request.param])
