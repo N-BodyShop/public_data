@@ -10,6 +10,10 @@ auxnames = {'mass':'mass', 'metal':'metals',
             'Fe':'FeMassFrac','Ox':'OxMassFrac'} # Mappings to pynbody keys
 
 def families(h):
+    """
+    return two zipped tuples of the three particle type names and their
+    components from the provided halo.
+    """
     return zip(['gas', 'star', 'dm'], [h.g, h.s, h.d])
 
 @pytest.fixture(scope='function', params=os.listdir('testdata'))
@@ -18,6 +22,9 @@ def all_sims(request, pyn_snaps):
     snap = tsim.timesteps[0]
     db_h = tsim.timesteps[0].halos[0]
     sim = pyn_snaps[0][snap.filename]
+    if 'MassHot' in sim.loadable_keys():
+        sim.g['massHot'] = sim.g['MassHot'] 
+    sim.g['massCold'] = sim.g['mass'] - sim.g['massHot']
     h = pyn_snaps[1][snap.filename][0]
     cen = db_h['shrink_center']
     res = tsim['approx_resolution_kpc']
@@ -71,10 +78,7 @@ def test_SFR(all_sims):
     dense_filter = pyn.filt.HighPass('rho', dPhysDenMin)
     cold_filter = pyn.filt.LowPass('temp', dTempMax)
     eligible = dense_filter & cold_filter
-    if 'massHot' in sim.loadable_keys():
-        eligible &= ~pyn.filt.HighPass('massHot', 0)
-    elif 'MassHot' in sim.loadable_keys():
-        eligible &= ~pyn.filt.HighPass('MassHot', 0)
+    eligible &= ~pyn.filt.HighPass('massHot', 0)
     sfg = h.g[eligible]
     tdyn = 1.0/np.sqrt(4*np.pi*pyn.units.G*sfg['rho'])
     sfr = dCstar*(sfg['mass']/tdyn).in_units('Msol yr**-1')
@@ -101,14 +105,8 @@ def test_mass_profiles(all_sims):
     warmfilt = pyn.filt.BandPass('temp', 1.e5, 1.e6)
     hotfilt = pyn.filt.HighPass('temp', 1.e6)
     mass = {'hot':0,'warm':0,'cold':0}
-    if 'massHot' in h.loadable_keys():
-        twophase = pyn.filt.HighPass('massHot', 0)
-        sim.g['massCold'] = sim.g['mass'] - sim.g['massHot']
-        mass['hot'] = h.g[twophase]['massHot'].in_units('Msol').sum() 
-    else:
-        twophase = pyn.filt.HighPass('MassHot', 0)
-        sim.g['massCold'] = sim.g['mass'] - sim.g['MassHot']
-        mass['hot'] = h.g[twophase]['MassHot'].in_units('Msol').sum() 
+    twophase = pyn.filt.HighPass('massHot', 0)
+    mass['hot'] = h.g[twophase]['massHot'].in_units('Msol').sum() 
     mass['hot'] += h.g[~twophase & hotfilt]['mass'].in_units('Msol').sum() 
     mass['cold'] = h.g[~twophase & coldfilt]['mass'].in_units('Msol').sum() \
     + h.g[twophase]['massCold'].in_units('Msol').sum() 
@@ -130,7 +128,7 @@ def test_metal_profiles(all_sims):
     """
     db_h, sim, h, cen, res = all_sims
     twophase = pyn.filt.HighPass('massHot', 0)
-    coldfilt = pyn.filt.LowPass('temp', 1.e5)
+    coldfilt = pyn.filt.LowPass('temp', 2.e4)
     for i,j in zip(['gas', 'cold_gas', 'star'], [h.g, h.g, h.s]):
         for k in ['metal', 'Fe', 'Ox']:
             # Fe/Ox Fraction and Metallicity is between zero and one
@@ -140,11 +138,12 @@ def test_metal_profiles(all_sims):
             assert(np.all(db_h[f'{i}_metal_profile'] >= db_h[f'{i}_{k}_profile']))
 
             # Check that the metal fractions match the snapshot totals.
-            masses = db_h[f'{i}_mass_profile']
-            masses[1:] -= masses[:-1]
             if i != 'cold_gas':
+                masses = db_h[f'{i}_mass_profile']
+                masses[1:] -= masses[:-1]
                 assert_allclose((j['mass'].in_units('Msol')*j[auxnames[k]]).sum(),
-                (masses*db_h[f'{i}_{k}_profile']).sum(), rtol=REL_TOL)
+                                (masses*db_h[f'{i}_{k}_profile']).sum(),
+                                rtol=REL_TOL)
 
 def test_surface_brightness(all_sims):
     """
