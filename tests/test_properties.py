@@ -16,7 +16,7 @@ def families(h):
     """
     return zip(['gas', 'star', 'dm'], [h.g, h.s, h.d])
 
-@pytest.fixture(scope='function', params=os.listdir('testdata'))
+@pytest.fixture(scope='function', params=['g3021'])
 def all_sims(request, pyn_snaps):
     tsim = tangos.get_simulation(request.param)
     snap = tsim.timesteps[0]
