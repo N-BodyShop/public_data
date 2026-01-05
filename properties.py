@@ -705,15 +705,55 @@ class VelDispersionProfileEncl(HaloDensityProfile):
         proS = pynbody.analysis.profile.Profile(halo.s, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
         proDM = pynbody.analysis.profile.Profile(halo.dm, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
 
+        halo['vr2'] = halo['vr']**2 #create new variable for the square of velocities
+        halo['vx2'] = halo['vx']**2
+        halo['vy2'] = halo['vy']**2
+        halo['vz2'] = halo['vz']**2
         if len(halo.g)>5:
-            sigG = proG['vr_disp_encl']
-            sigG3d = proG['v_disp_tot_encl']
+            sqmean = np.nancumsum(proG['vr2']*proG['weight_fn'])/np.nancumsum(proG['weight_fn'])
+            meansq = (np.nancumsum(proG['vr']*proG['weight_fn'])/np.nancumsum(proG['weight_fn']))**2
+            sigG = np.sqrt(sqmean-meansq)
+
+            sqmeanx = np.nancumsum(proG['vx2']*proG['weight_fn'])/np.nancumsum(proG['weight_fn'])
+            meansqx = (np.nancumsum(proG['vx']*proG['weight_fn'])/np.nancumsum(proG['weight_fn']))**2
+            sqmeany = np.nancumsum(proG['vy2']*proG['weight_fn'])/np.nancumsum(proG['weight_fn'])
+            meansqy = (np.nancumsum(proG['vy']*proG['weight_fn'])/np.nancumsum(proG['weight_fn']))**2
+            sqmeanz = np.nancumsum(proG['vz2']*proG['weight_fn'])/np.nancumsum(proG['weight_fn'])
+            meansqz = (np.nancumsum(proG['vz']*proS['weight_fn'])/np.nancumsum(proG['weight_fn']))**2
+            sigGx2 = sqmeanx-meansqx
+            sigGy2 = sqmeany-meansqy
+            sigGz2 = sqmeanz-meansqz
+            sigG3d = np.sqrt(sigGx2+sigGy2+sigGz2)
         if len(halo.s)>5:
-            sigS = proS['vr_disp_encl']
-            sigS3d = proS['v_disp_tot_encl']
+            sqmean = np.nancumsum(proS['vr2']*proS['weight_fn'])/np.nancumsum(proS['weight_fn'])
+            meansq = (np.nancumsum(proS['vr']*proS['weight_fn'])/np.nancumsum(proS['weight_fn']))**2
+            sigS = np.sqrt(sqmean-meansq)
+
+            sqmeanx = np.nancumsum(proS['vx2']*proS['weight_fn'])/np.nancumsum(proS['weight_fn'])
+            meansqx = (np.nancumsum(proS['vx']*proS['weight_fn'])/np.nancumsum(proS['weight_fn']))**2
+            sqmeany = np.nancumsum(proS['vy2']*proS['weight_fn'])/np.nancumsum(proS['weight_fn'])
+            meansqy = (np.nancumsum(proS['vy']*proS['weight_fn'])/np.nancumsum(proS['weight_fn']))**2
+            sqmeanz = np.nancumsum(proS['vz2']*proS['weight_fn'])/np.nancumsum(proS['weight_fn'])
+            meansqz = (np.nancumsum(proS['vz']*proS['weight_fn'])/np.nancumsum(proS['weight_fn']))**2
+            sigSx2 = sqmeanx-meansqx
+            sigSy2 = sqmeany-meansqy
+            sigSz2 = sqmeanz-meansqz
+            sigS3d = np.sqrt(sigSx2+sigSy2+sigSz2)
         if len(halo.dm)>5:
-            sigDM = proDM['vr_disp_encl']
-            sigDM3d = proDM['v_disp_tot_encl']
+            sqmean = np.nancumsum(proDM['vr2']*proDM['weight_fn'])/np.nancumsum(proDM['weight_fn'])
+            meansq = (np.nancumsum(proDM['vr']*proDM['weight_fn'])/np.nancumsum(proDM['weight_fn']))**2
+            sigDM = np.sqrt(sqmean-meansq)
+
+            sqmeanx = np.nancumsum(proDM['vx2']*proDM['weight_fn'])/np.nancumsum(proDM['weight_fn'])
+            meansqx = (np.nancumsum(proDM['vx']*proDM['weight_fn'])/np.nancumsum(proDM['weight_fn']))**2
+            sqmeany = np.nancumsum(proDM['vy2']*proDM['weight_fn'])/np.nancumsum(proDM['weight_fn'])
+            meansqy = (np.nancumsum(proDM['vy']*proDM['weight_fn'])/np.nancumsum(proDM['weight_fn']))**2
+            sqmeanz = np.nancumsum(proDM['vz2']*proDM['weight_fn'])/np.nancumsum(proDM['weight_fn'])
+            meansqz = (np.nancumsum(proDM['vz']*proDM['weight_fn'])/np.nancumsum(proDM['weight_fn']))**2
+            sigDMx2 = sqmeanx-meansqx
+            sigDMy2 = sqmeany-meansqy
+            sigDMz2 = sqmeanz-meansqz
+            sigDM3d = np.sqrt(sigDMx2+sigDMy2+sigDMz2)
 
         return sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d
 
