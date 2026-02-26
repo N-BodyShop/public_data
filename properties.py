@@ -646,7 +646,6 @@ class VelDispersionProfile(HaloDensityProfile):
             sqmean = proS['vr2']
             meansq = proS['vr']**2
             sigs = np.sqrt(sqmean-meansq)
-            sigg = np.sqrt(sqmean-meansq)
             sqmeanx = proS['vx2']
             meansqx = proS['vx']**2
             sqmeany = proS['vy2']
