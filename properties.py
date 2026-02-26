@@ -622,18 +622,56 @@ class VelDispersionProfile(HaloDensityProfile):
         sigs3D = None
         sigg3D = None
         sigdm3D = None
+        halo['vr2'] = halo['vr']**2 #create new variable for the square of velocities
+        halo['vx2'] = halo['vx']**2
+        halo['vy2'] = halo['vy']**2
+        halo['vz2'] = halo['vz']**2
         if len(halo.g)>10:
             proG = pynbody.analysis.profile.Profile(halo.g, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-            sigg =  proG['vr_disp']
-            sigg3D = np.sqrt(proG['vx_disp']**2 + proG['vy_disp']**2 + proG['vz_disp']**2)
+            sqmean = proG['vr2']
+            meansq = proG['vr']**2
+            sigg = np.sqrt(sqmean-meansq)
+            sqmeanx = proG['vx2']
+            meansqx = proG['vx']**2
+            sqmeany = proG['vy2']
+            meansqy = proG['vy']**2
+            sqmeanz = proG['vz2']
+            meansqz = proG['vz']**2
+            sigGx2 = sqmeanx-meansqx
+            sigGy2 = sqmeany-meansqy
+            sigGz2 = sqmeanz-meansqz
+            sigg3D = np.sqrt(sigGx2+sigGy2+sigGz2)
         if len(halo.s)>10:
             proS = pynbody.analysis.profile.Profile(halo.s, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-            sigs = proS['vr_disp']
-            sigs3D = np.sqrt(proS['vx_disp'] ** 2 + proS['vy_disp'] ** 2 + proS['vz_disp'] ** 2)
+            sqmean = proS['vr2']
+            meansq = proS['vr']**2
+            sigs = np.sqrt(sqmean-meansq)
+            sigg = np.sqrt(sqmean-meansq)
+            sqmeanx = proS['vx2']
+            meansqx = proS['vx']**2
+            sqmeany = proS['vy2']
+            meansqy = proS['vy']**2
+            sqmeanz = proS['vz2']
+            meansqz = proS['vz']**2
+            sigSx2 = sqmeanx-meansqx
+            sigSy2 = sqmeany-meansqy
+            sigSz2 = sqmeanz-meansqz
+            sigs3D = np.sqrt(sigSx2+sigSy2+sigSz2)
         if len(halo.dm)>10:
             proDM = pynbody.analysis.profile.Profile(halo.dm, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-            sigdm = proDM['vr_disp']
-            sigdm3D = np.sqrt(proDM['vx_disp'] ** 2 + proDM['vy_disp'] ** 2 + proDM['vz_disp'] ** 2)
+            sqmean = proDM['vr2']
+            meansq = proDM['vr']**2
+            sigd = np.sqrt(sqmean-meansq)
+            sqmeanx = proDM['vx2']
+            meansqx = proDM['vx']**2
+            sqmeany = proDM['vy2']
+            meansqy = proDM['vy']**2
+            sqmeanz = proDM['vz2']
+            meansqz = proDM['vz']**2
+            sigDMx2 = sqmeanx-meansqx
+            sigDMy2 = sqmeany-meansqy
+            sigDMz2 = sqmeanz-meansqz
+            sigdm3D = np.sqrt(sigDMx2+sigDMy2+sigDMz2)
         return sigs, sigg, sigdm, sigs3D, sigg3D, sigdm3D
 
     @immediate_calc
