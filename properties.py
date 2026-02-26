@@ -661,7 +661,7 @@ class VelDispersionProfile(HaloDensityProfile):
             proDM = pynbody.analysis.profile.Profile(halo.dm, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
             sqmean = proDM['vr2']
             meansq = proDM['vr']**2
-            sigd = np.sqrt(sqmean-meansq)
+            sigdm = np.sqrt(sqmean-meansq)
             sqmeanx = proDM['vx2']
             meansqx = proDM['vx']**2
             sqmeany = proDM['vy2']
