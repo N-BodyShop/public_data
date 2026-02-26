@@ -1,3 +1,4 @@
+import functools
 from tangos.properties.pynbody import PynbodyPropertyCalculation
 from tangos.properties.pynbody.profile import HaloDensityProfile
 from tangos.properties.pynbody.BH import BHAccHistogram
@@ -7,6 +8,13 @@ from tangos.live_calculation import NoResultsError
 import pynbody
 import numpy as np
 import scipy
+
+def immediate_calc(fn):
+    @functools.wraps(fn)
+    def new_fn(self, halo, existing_properties):
+        with halo.immediate_mode:
+            return fn(self,halo,existing_properties)
+    return new_fn
 
 # Replace NaN values with a substitute value in some list of arrays.
 def nan_remover(arrs, sub=0):
@@ -88,6 +96,7 @@ class InflowOutflow(HaloDensityProfile):
         Fe_in     = (-iprof['p_r_Fe']/delta).view(np.ndarray)
         return mass_out, mass_in, metal_out, metal_in, Ox_out, Ox_in, Fe_out, Fe_in
         
+    @immediate_calc
     @centred_calculation
     def calculate(self, halo, existing_properties):
         try:
@@ -155,6 +164,7 @@ class AngMomProfile(HaloDensityProfile):
         
         return jtot_g, jtot_s, jtot_dm, jphi_g, jphi_s, jphi_dm, jtheta_g, jtheta_s, jtheta_dm
 
+    @immediate_calc
     @centred_calculation
     def calculate(self, halo, existing_properties):
         try:
@@ -217,6 +227,7 @@ class MetalProfile(HaloDensityProfile):
             ox_pro_s = pro_s['OxMassFrac']
         return metal_pro_g, metal_pro_s, fe_pro_g, fe_pro_s, ox_pro_g, ox_pro_s
 
+    @immediate_calc
     @centred_calculation
     def calculate(self, halo, existing_properties):
         metals_gas, metals_star, fe_gas, fe_star, ox_gas, ox_star = nan_remover(self._get_profile(halo, existing_properties["max_radius"]))
@@ -281,6 +292,7 @@ class ColdDenGasMetalProfile(HaloDensityProfile):
 
         return metal_pro, fe_pro, ox_pro
 
+    @immediate_calc
     @centred_calculation
     def calculate(self, halo, existing_properties):
         cold_metal_pro, cold_fe_pro, cold_ox_pro = nan_remover(self._get_profile(halo.g,
@@ -377,6 +389,7 @@ class MassEnclosedTemp(HaloDensityProfile):
 
             return proCG['mass_enc'], proWG['mass_enc'], proHG['mass_enc']
      
+    @immediate_calc
     @centred_calculation
     def calculate(self,halo,properties):
         maxrad = properties['max_radius']
@@ -444,6 +457,7 @@ class StellarProfileFaceOn(HaloDensityProfile):
     def requires_property(self):
         return ['shrink_center', 'max_radius']
     
+    @immediate_calc
     @centred_calculation
     def calculate(self, halo, existing_properties):
         with pynbody.analysis.angmom.faceon(halo):
@@ -622,6 +636,7 @@ class VelDispersionProfile(HaloDensityProfile):
             sigdm3D = np.sqrt(proDM['vx_disp'] ** 2 + proDM['vy_disp'] ** 2 + proDM['vz_disp'] ** 2)
         return sigs, sigg, sigdm, sigs3D, sigg3D, sigdm3D
 
+    @immediate_calc
     @centred_calculation
     def calculate(self,halo,properties):
         maxrad = properties['max_radius']
@@ -757,6 +772,7 @@ class VelDispersionProfileEncl(HaloDensityProfile):
 
         return sigS, sigG, sigDM, sigS3d, sigG3d, sigDM3d
 
+    @immediate_calc
     @centred_calculation
     def calculate(self,halo,properties):
         maxrad = properties['max_radius']
