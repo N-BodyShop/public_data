@@ -36,6 +36,7 @@ def get_testdata():
         # Extract the tar.gz file
         with tarfile.open("testdata.tar.gz", "r:gz") as tar:
             tar.extractall(filter='data')
+        os.remove('testdata.tar.gz')
     else:
         raise Exception(f"Failed to download test data: {r.status_code}")
 
