@@ -12,6 +12,11 @@ on:
 permissions:
   contents: read
 
+env:
+  TANGOS_SIMULATION_FOLDER: testdata
+  TANGOS_DB_CONNECTION: test.db
+  TANGOS_PROPERTY_MODULES: properties
+
 jobs:
   build:
 
@@ -27,9 +32,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest requests pynbody tangos scipy pytest-order
-    - name: Test with pytest
+    - name: Run serial tests
       run: |
-        export TANGOS_SIMULATION_FOLDER=`realpath testdata`
-        export TANGOS_DB_CONNECTION=test.db
-        export TANGOS_PROPERTY_MODULES=properties
-        pytest
+        export TANGOS_SIMULATION_FOLDER=`realpath $TANGOS_SIMULATION_FOLDER`
+        pytest --paramfile=test.conf
+    - name: Run parallel tests
+      run: |
+        export TANGOS_SIMULATION_FOLDER=`realpath $TANGOS_SIMULATION_FOLDER`
+        pytest --paramfile=test_parallel.conf
