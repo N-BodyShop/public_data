@@ -307,10 +307,13 @@ class InstantaneousSFR(PynbodyPropertyCalculation):
         dense_filter = pynbody.filt.HighPass('rho', dPhysDenMin)
         cold_filter = pynbody.filt.LowPass('temp', dTempMax)
         eligible = dense_filter & cold_filter
-        if 'massHot' in halo.loadable_keys():
-            eligible &= ~pynbody.filt.HighPass('massHot', 0)
-        elif 'MassHot' in halo.loadable_keys():
+        try:
+            halo['MassHot']
             eligible &= ~pynbody.filt.HighPass('MassHot', 0)
+            halo['massHot']
+            eligible &= ~pynbody.filt.HighPass('massHot', 0)
+        except:
+            pass
         sfg = halo.g[eligible]
 
         # Calculate the instantaneous SFR for all gas particles.
@@ -342,7 +345,12 @@ class MassEnclosedTemp(HaloDensityProfile):
         maxrad = delta * (nbins + 1)
         if len(halo.g)==0:
             return None, None, None
-        if 'massHot' in halo.loadable_keys():
+        try:
+            halo['massHot']
+            halo['MassHot']
+        except:
+            pass
+        if 'massHot' in halo.keys():
             twophase = pynbody.filt.HighPass('massHot', 0)
             halo.g['massCold'] = halo.g['mass'] - halo.g['massHot']
             one_proCG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.LowPass("temp", 1.e5)],
@@ -355,7 +363,7 @@ class MassEnclosedTemp(HaloDensityProfile):
                                                      type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
             return (one_proCG['mass_enc']+pynbody.analysis.profile.weight_fn(two_pro, 'massCold').cumsum(), 
                     one_proWG['mass_enc'], one_proHG['mass_enc'] + pynbody.analysis.profile.weight_fn(two_pro, 'massHot').cumsum())
-        elif'MassHot' in halo.loadable_keys():
+        elif'MassHot' in halo.keys():
             twophase = pynbody.filt.HighPass('MassHot', 0)
             halo.g['MassCold'] = halo.g['mass'] - halo.g['MassHot']
             one_proCG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.LowPass("temp", 1.e5)],
