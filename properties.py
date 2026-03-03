@@ -480,14 +480,11 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
         self.sblimit=sblimit
         self.sats=sats
         self.smooth=smooth
+        self.requires_particle_data = False
         if smooth==0:
             self.smooth=1
 
     names="half_light","sersic_m0", "sersic_n", "sersic_r0"
-
-    @classmethod
-    def requires_particle_data(self):
-        return False
 
     def requires_property(self):
         return ["u_surface_brightness", "g_surface_brightness", "r_surface_brightness", "i_surface_brightness", "z_surface_brightness", "U_surface_brightness", "V_surface_brightness", "J_surface_brightness", 'max_radius', 'shrink_center']
