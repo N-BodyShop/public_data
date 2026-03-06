@@ -446,7 +446,7 @@ class StellarProfileFaceOn(HaloDensityProfile):
     
     @centred_calculation
     def calculate(self, halo, existing_properties):
-        vcen = pynbody.analysis.halo.vel_center(halo)
+        vcen = pynbody.analysis.halo.vel_center(halo, return_cen=True)
         halo['vel'] -= vcen
         with pynbody.analysis.angmom.faceon(halo, already_centered=True):
             nbins = int(existing_properties['max_radius']/self.plot_xdelta())
