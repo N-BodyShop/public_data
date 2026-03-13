@@ -1,3 +1,4 @@
+import functools
 from tangos.properties.pynbody import PynbodyPropertyCalculation
 from tangos.properties.pynbody.profile import HaloDensityProfile
 from tangos.properties.pynbody.BH import BHAccHistogram
@@ -306,10 +307,13 @@ class InstantaneousSFR(PynbodyPropertyCalculation):
         dense_filter = pynbody.filt.HighPass('rho', dPhysDenMin)
         cold_filter = pynbody.filt.LowPass('temp', dTempMax)
         eligible = dense_filter & cold_filter
-        if 'massHot' in halo.loadable_keys():
-            eligible &= ~pynbody.filt.HighPass('massHot', 0)
-        elif 'MassHot' in halo.loadable_keys():
+        try:
+            halo['MassHot']
             eligible &= ~pynbody.filt.HighPass('MassHot', 0)
+            halo['massHot']
+            eligible &= ~pynbody.filt.HighPass('massHot', 0)
+        except:
+            pass
         sfg = halo.g[eligible]
 
         # Calculate the instantaneous SFR for all gas particles.
@@ -341,7 +345,12 @@ class MassEnclosedTemp(HaloDensityProfile):
         maxrad = delta * (nbins + 1)
         if len(halo.g)==0:
             return None, None, None
-        if 'massHot' in halo.loadable_keys():
+        try:
+            halo['massHot']
+            halo['MassHot']
+        except:
+            pass
+        if 'massHot' in halo.keys():
             twophase = pynbody.filt.HighPass('massHot', 0)
             halo.g['massCold'] = halo.g['mass'] - halo.g['massHot']
             one_proCG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.LowPass("temp", 1.e5)],
@@ -354,7 +363,7 @@ class MassEnclosedTemp(HaloDensityProfile):
                                                      type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
             return (one_proCG['mass_enc']+pynbody.analysis.profile.weight_fn(two_pro, 'massCold').cumsum(), 
                     one_proWG['mass_enc'], one_proHG['mass_enc'] + pynbody.analysis.profile.weight_fn(two_pro, 'massHot').cumsum())
-        elif'MassHot' in halo.loadable_keys():
+        elif'MassHot' in halo.keys():
             twophase = pynbody.filt.HighPass('MassHot', 0)
             halo.g['MassCold'] = halo.g['mass'] - halo.g['MassHot']
             one_proCG = pynbody.analysis.profile.Profile(halo.g[~twophase & pynbody.filt.LowPass("temp", 1.e5)],
@@ -473,14 +482,11 @@ class StellarProfileDiagnosis(LivePropertyCalculation):
         self.sblimit=sblimit
         self.sats=sats
         self.smooth=smooth
+        self.requires_particle_data = False
         if smooth==0:
             self.smooth=1
 
     names="half_light","sersic_m0", "sersic_n", "sersic_r0"
-
-    @classmethod
-    def requires_particle_data(self):
-        return False
 
     def requires_property(self):
         return ["u_surface_brightness", "g_surface_brightness", "r_surface_brightness", "i_surface_brightness", "z_surface_brightness", "U_surface_brightness", "V_surface_brightness", "J_surface_brightness", 'max_radius', 'shrink_center']
@@ -610,18 +616,55 @@ class VelDispersionProfile(HaloDensityProfile):
         sigs3D = None
         sigg3D = None
         sigdm3D = None
+        halo['vr2'] = halo['vr']**2 #create new variable for the square of velocities
+        halo['vx2'] = halo['vx']**2
+        halo['vy2'] = halo['vy']**2
+        halo['vz2'] = halo['vz']**2
         if len(halo.g)>10:
             proG = pynbody.analysis.profile.Profile(halo.g, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-            sigg =  proG['vr_disp']
-            sigg3D = np.sqrt(proG['vx_disp']**2 + proG['vy_disp']**2 + proG['vz_disp']**2)
+            sqmean = proG['vr2']
+            meansq = proG['vr']**2
+            sigg = np.sqrt(sqmean-meansq)
+            sqmeanx = proG['vx2']
+            meansqx = proG['vx']**2
+            sqmeany = proG['vy2']
+            meansqy = proG['vy']**2
+            sqmeanz = proG['vz2']
+            meansqz = proG['vz']**2
+            sigGx2 = sqmeanx-meansqx
+            sigGy2 = sqmeany-meansqy
+            sigGz2 = sqmeanz-meansqz
+            sigg3D = np.sqrt(sigGx2+sigGy2+sigGz2)
         if len(halo.s)>10:
             proS = pynbody.analysis.profile.Profile(halo.s, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-            sigs = proS['vr_disp']
-            sigs3D = np.sqrt(proS['vx_disp'] ** 2 + proS['vy_disp'] ** 2 + proS['vz_disp'] ** 2)
+            sqmean = proS['vr2']
+            meansq = proS['vr']**2
+            sigs = np.sqrt(sqmean-meansq)
+            sqmeanx = proS['vx2']
+            meansqx = proS['vx']**2
+            sqmeany = proS['vy2']
+            meansqy = proS['vy']**2
+            sqmeanz = proS['vz2']
+            meansqz = proS['vz']**2
+            sigSx2 = sqmeanx-meansqx
+            sigSy2 = sqmeany-meansqy
+            sigSz2 = sqmeanz-meansqz
+            sigs3D = np.sqrt(sigSx2+sigSy2+sigSz2)
         if len(halo.dm)>10:
             proDM = pynbody.analysis.profile.Profile(halo.dm, type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
-            sigdm = proDM['vr_disp']
-            sigdm3D = np.sqrt(proDM['vx_disp'] ** 2 + proDM['vy_disp'] ** 2 + proDM['vz_disp'] ** 2)
+            sqmean = proDM['vr2']
+            meansq = proDM['vr']**2
+            sigdm = np.sqrt(sqmean-meansq)
+            sqmeanx = proDM['vx2']
+            meansqx = proDM['vx']**2
+            sqmeany = proDM['vy2']
+            meansqy = proDM['vy']**2
+            sqmeanz = proDM['vz2']
+            meansqz = proDM['vz']**2
+            sigDMx2 = sqmeanx-meansqx
+            sigDMy2 = sqmeany-meansqy
+            sigDMz2 = sqmeanz-meansqz
+            sigdm3D = np.sqrt(sigDMx2+sigDMy2+sigDMz2)
         return sigs, sigg, sigdm, sigs3D, sigg3D, sigdm3D
 
     @centred_calculation

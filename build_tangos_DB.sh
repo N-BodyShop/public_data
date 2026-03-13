@@ -80,4 +80,3 @@ tangos import-properties `cat $SCRIPT_DIR/import_properties | grep -v '^#'`
 
 # Write galaxy properties
 $RUNNER tangos write `cat $SCRIPT_DIR/write_properties | grep -v '^#'` --include-only="NGas()>$MIN_GAS" --include-only="NStar()>$MIN_STAR" $PARALLEL $LOAD_MODE
-

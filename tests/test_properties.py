@@ -16,7 +16,7 @@ def families(h):
     """
     return zip(['gas', 'star', 'dm'], [h.g, h.s, h.d])
 
-@pytest.fixture(scope='function', params=['g3021'])
+@pytest.fixture(scope='function', params=['g3021','cptmarvel'])
 def all_sims(request, pyn_snaps):
     tsim = tangos.get_simulation(request.param)
     snap = tsim.timesteps[0]
@@ -24,6 +24,8 @@ def all_sims(request, pyn_snaps):
     sim = pyn_snaps[0][snap.filename]
     if 'MassHot' in sim.loadable_keys():
         sim.g['massHot'] = sim.g['MassHot'] 
+    if 'massHot' not in sim.loadable_keys():
+        sim.g['massHot'] = 0*sim.g['mass'] 
     sim.g['massCold'] = sim.g['mass'] - sim.g['massHot']
     h = pyn_snaps[1][snap.filename][0]
     cen = db_h['shrink_center']
@@ -43,7 +45,8 @@ def test_center(all_sims):
     Check that the tangos shrink_center matches the value loaded straight from pynbody
     """
     db_h, sim, h, cen, res = all_sims
-    assert_allclose(cen, h['pos'].mean(axis=0).in_units('kpc'), rtol=REL_TOL)
+    assert_allclose(cen, pyn.analysis.halo.shrink_sphere_center(h.d, shrink_factor=0.8,
+                                                                particles_for_velocity=0).in_units('kpc'), rtol=REL_TOL)
 
 def test_masses(all_sims):
     """
@@ -106,11 +109,13 @@ def test_mass_profiles(all_sims):
     hotfilt = pyn.filt.HighPass('temp', 1.e6)
     mass = {'hot':0,'warm':0,'cold':0}
     twophase = pyn.filt.HighPass('massHot', 0)
-    mass['hot'] = h.g[twophase]['massHot'].in_units('Msol').sum() 
-    mass['hot'] += h.g[~twophase & hotfilt]['mass'].in_units('Msol').sum() 
-    mass['cold'] = h.g[~twophase & coldfilt]['mass'].in_units('Msol').sum() \
-    + h.g[twophase]['massCold'].in_units('Msol').sum() 
-    mass['warm'] = h.g[~twophase & warmfilt]['mass'].in_units('Msol').sum() 
+    radfilt = pyn.filt.Sphere(db_h['max_radius'])
+    with sim.translate(-cen):
+        mass['hot'] = sim[radfilt].g[twophase]['massHot'].in_units('Msol').sum() 
+        mass['hot'] += sim[radfilt].g[~twophase & hotfilt]['mass'].in_units('Msol').sum() 
+        mass['cold'] = sim[radfilt].g[~twophase & coldfilt]['mass'].in_units('Msol').sum() \
+        + h.g[twophase]['massCold'].in_units('Msol').sum() 
+        mass['warm'] = sim[radfilt].g[~twophase & warmfilt]['mass'].in_units('Msol').sum() 
     for i in ['cold', 'warm', 'hot']:
         # Our gas temperature phases should be less than the total mass
         assert(np.all(db_h['gas_mass_profile'] >= db_h[f'{i}_gas_mass_profile']))
@@ -129,21 +134,23 @@ def test_metal_profiles(all_sims):
     db_h, sim, h, cen, res = all_sims
     twophase = pyn.filt.HighPass('massHot', 0)
     coldfilt = pyn.filt.LowPass('temp', 2.e4)
-    for i,j in zip(['gas', 'cold_gas', 'star'], [h.g, h.g, h.s]):
-        for k in ['metal', 'Fe', 'Ox']:
-            # Fe/Ox Fraction and Metallicity is between zero and one
-            assert(np.all(db_h[f'{i}_{k}_profile'] >= 0))
-            assert(np.all(db_h[f'{i}_{k}_profile'] <= 1))
-            # Metal fractions should always be greater than individual species fractions
-            assert(np.all(db_h[f'{i}_metal_profile'] >= db_h[f'{i}_{k}_profile']))
+    with sim.translate(-cen):
+        filt = pyn.filt.Sphere(db_h['max_radius'])
+        for i,j in zip(['gas', 'cold_gas', 'star'], [sim[filt].g, sim[filt].g, sim[filt].s]):
+            for k in ['metal', 'Fe', 'Ox']:
+                # Fe/Ox Fraction and Metallicity is between zero and one
+                assert(np.all(db_h[f'{i}_{k}_profile'] >= 0))
+                assert(np.all(db_h[f'{i}_{k}_profile'] <= 1))
+                # Metal fractions should always be greater than individual species fractions
+                assert(np.all(db_h[f'{i}_metal_profile'] >= db_h[f'{i}_{k}_profile']))
 
-            # Check that the metal fractions match the snapshot totals.
-            if i != 'cold_gas':
-                masses = db_h[f'{i}_mass_profile']
-                masses[1:] -= masses[:-1]
-                assert_allclose((j['mass'].in_units('Msol')*j[auxnames[k]]).sum(),
-                                (masses*db_h[f'{i}_{k}_profile']).sum(),
-                                rtol=REL_TOL)
+                # Check that the metal fractions match the snapshot totals.
+                if i != 'cold_gas':
+                    masses = db_h[f'{i}_mass_profile']
+                    masses[1:] -= masses[:-1]
+                    assert_allclose((j['mass'].in_units('Msol')*j[auxnames[k]]).sum(),
+                                    (masses*db_h[f'{i}_{k}_profile']).sum(),
+                                    rtol=REL_TOL)
 
 def test_surface_brightness(all_sims):
     """
@@ -175,9 +182,10 @@ def test_inflow_outflow(all_sims):
     Check that the inflow and outflow profiles match ones calculated straight from pynbody
     """
     db_h, sim, h, cen, res = all_sims
-    with h.translate(-cen):
-        with pyn.analysis.halo.vel_center(h, cen_size=db_h['max_radius']):
-            flow = {'inflow':h.g[h.g['vr'] < 0], 'outflow':h.g[h.g['vr'] > 0]}
+    with sim.translate(-cen):
+        with pyn.analysis.halo.vel_center(sim, cen_size=db_h['max_radius']):
+            filt = pyn.filt.Sphere(db_h['max_radius'])
+            flow = {'inflow':sim[filt].g[sim[filt].g['vr'] < 0], 'outflow':sim[filt].g[sim[filt].g['vr'] > 0]}
             for i in ['mass', 'metal', 'Fe', 'Ox']:
                 for j in ['inflow','outflow']:
                     # Check that all values are positive
@@ -198,21 +206,30 @@ def test_vrdisp(all_sims):
     """
     db_h, sim, h, cen, res = all_sims
     normify = lambda x: np.linalg.norm(np.array(np.std(x, axis=0)))
-    with h.translate(-cen):
+    with sim.translate(-cen):
         with pyn.analysis.halo.vel_center(h, cen_size='5 kpc'):
-            filt = pyn.filt.LowPass('r', res)
+            filt = pyn.filt.Sphere(res)
             # The radial velocity dispersion must always be positive
-            for i,j in families(h):
+            for i,j in families(sim[pyn.filt.Sphere(db_h['max_radius'])]):
                 for k in ['', 'encl_']:
                     assert(np.all(db_h[f'vrdisp_{k}{i}'] >= 0))
                     assert(np.all(db_h[f'vdisp_{k}{i}_3d'] >= 0))
-                # Check that the dispersion results match the snapshot
-                assert_allclose(db_h[f'vrdisp_{i}'][0],
-                                np.std(j[filt]['vr'].in_units('km s**-1')),
-                                rtol=REL_TOL)
-                assert_allclose(db_h[f'vdisp_{i}_3d'][0],
-                                normify(j[filt]['vel'].in_units('km s**-1')),
-                                rtol=REL_TOL)
+                if len(j[filt]) == 0:
+                    # Check that the dispersion results match the snapshot
+                    assert_allclose(db_h[f'vrdisp_{i}'][0],
+                                    0,
+                                    rtol=REL_TOL)
+                    assert_allclose(db_h[f'vdisp_{i}_3d'][0],
+                                    0,
+                                    rtol=REL_TOL)
+                else:
+                    # Check that the dispersion results match the snapshot
+                    assert_allclose(db_h[f'vrdisp_{i}'][0],
+                                    np.std(j[filt]['vr'].in_units('km s**-1')),
+                                    rtol=REL_TOL)
+                    assert_allclose(db_h[f'vdisp_{i}_3d'][0],
+                                    normify(j[filt]['vel'].in_units('km s**-1')),
+                                    rtol=REL_TOL)
                 # Check that the enclosed dispersion results match the snapshot
                 assert_allclose(db_h[f'vrdisp_encl_{i}'][-1],
                                 np.std(j['vr'].in_units('km s**-1')),
