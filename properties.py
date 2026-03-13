@@ -461,6 +461,7 @@ class StellarProfileFaceOn(HaloDensityProfile):
             nbins = int(existing_properties['max_radius']/self.plot_xdelta())
             ps = pynbody.analysis.profile.Profile(halo.s, type='lin', ndim=2, min=0, max=existing_properties['max_radius'], nbins=nbins)
             vals = [ps['sb,'+x] for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
+        halo['vel'] += vcen
         return vals
     
     
