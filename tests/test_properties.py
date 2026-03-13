@@ -158,7 +158,7 @@ def test_surface_brightness(all_sims):
     """
     db_h, sim, h, cen, res = all_sims
     with sim.translate(-cen):
-        with pyn.analysis.halo.vel_center(h)
+        with pyn.analysis.halo.vel_center(h):
             with pyn.analysis.angmom.faceon(h,already_centered=True):
                 rmax = db_h['max_radius']
                 ps = pyn.analysis.profile.Profile(h.s, type='lin', ndim=2, rmin=0, rmax=rmax, nbins=int(rmax/res))
