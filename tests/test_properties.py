@@ -157,13 +157,15 @@ def test_surface_brightness(all_sims):
     Check that the stellar surface brightness profiles are sane
     """
     db_h, sim, h, cen, res = all_sims
-    with pyn.analysis.angmom.faceon(h):
-        rmax = db_h['max_radius']
-        ps = pyn.analysis.profile.Profile(h.s, type='lin', ndim=2, rmin=0, rmax=rmax, nbins=int(rmax/res))
-        pkeys = ['sb,'+x for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
-        tkeys = [x+'_surface_brightness' for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
-        for pk,tk in zip(pkeys,tkeys):
-            assert_allclose(db_h[tk], ps[pk], rtol=REL_TOL)
+    with sim.translate(-cen):
+        with pyn.analysis.halo.vel_center(h):
+            with pyn.analysis.angmom.faceon(h,already_centered=True):
+                rmax = db_h['max_radius']
+                ps = pyn.analysis.profile.Profile(h.s, type='lin', ndim=2, rmin=0, rmax=rmax, nbins=int(rmax/res))
+                pkeys = ['sb,'+x for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
+                tkeys = [x+'_surface_brightness' for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
+                for pk,tk in zip(pkeys,tkeys):
+                    assert_allclose(db_h[tk], ps[pk], rtol=REL_TOL)
 
 def test_density_profiles(all_sims):
     """
