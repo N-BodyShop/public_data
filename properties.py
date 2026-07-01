@@ -395,6 +395,39 @@ class MassEnclosedTemp(HaloDensityProfile):
 
         return CG, WG, HG
 
+class LiveTotMBH(LivePropertyCalculation):
+    '''
+    calculate the total mass in BHs in a halo
+    '''
+    names = 'finder_bh_mass'
+
+    def __init__(self,simulation, bh_type="BH", max_central_distance=None):
+        super(LiveTotMBH,self).__init__(simulation)
+        self._rmax=max_central_distance
+        self._bhtype=bh_type
+
+    def requires_property(self):
+        if self._rmax is not None:
+            return self._bhtype, self._bhtype+".BH_mass", self._bhtype+'.BH_central_distance'
+        if self._rmax is None:
+            return self._bhtype, self._bhtype+".BH_mass"
+
+    def live_calculate(self,halo,*args):
+        mass = 0
+        if type(halo[self._bhtype])==list:
+            for bh in halo[self._bhtype]:
+                if self._rmax is not None:
+                    if bh['BH_central_distance']>self._rmax:
+                        continue
+                mass += bh['BH_mass']
+        else:
+            bh = halo[self._bhtype]
+            if self._rmax is not None:
+                if bh['BH_central_distance']<self._rmax:
+                    mass += bh['BH_mass']
+            else:
+                mass += bh['BH_mass']
+        return mass
 
 class LiveRadius(LivePropertyCalculation):
     '''
