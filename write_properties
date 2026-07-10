@@ -53,3 +53,12 @@ Ox_outflow_profile
 Ox_inflow_profile
 Fe_outflow_profile
 Fe_inflow_profile
+j_gas_profile
+j_star_profile
+j_dm_profile
+j_phi_gas_profile
+j_phi_star_profile
+j_phi_dm_profile
+j_theta_gas_profile
+j_theta_star_profile
+j_theta_dm_profile
