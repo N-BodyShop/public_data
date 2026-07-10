@@ -202,6 +202,51 @@ def test_inflow_outflow(all_sims):
                             np.abs(flow[j]['vr'].in_units('kpc yr**-1') * 
                              weight*flow[j]['mass'].in_units('Msol')).sum()/res, rtol=REL_TOL)
 
+def test_contamination(all_sims):
+    """
+    Check that the contamination fraction matches the heavy/light dark matter
+    particle counts from the snapshot.
+    """
+    db_h, sim, h, cen, res = all_sims
+    assert(db_h['contamination_fraction'] >= 0)
+    assert(db_h['contamination_fraction'] <= 1)
+    min_dm_mass = h.d['mass'].min().in_units('Msol')
+    res_msol = db_h.timestep.simulation.get('approx_resolution_Msol', np.inf)
+    if np.isclose(min_dm_mass, res_msol, rtol=1e-1, atol=1):
+        expected = float((h.d['mass'].in_units('Msol') > min_dm_mass).sum())/len(h.d)
+    else:
+        # The halo contains no particles at the deepest zoom level
+        expected = 1.0
+    assert_allclose(db_h['contamination_fraction'], expected, rtol=REL_TOL)
+
+def test_angmom_profiles(all_sims):
+    """
+    Check that the specific angular momentum profiles match ones calculated
+    straight from pynbody. Profile properties are computed over all particles
+    within a sphere of max_radius, not just halo members.
+    """
+    db_h, sim, h, cen, res = all_sims
+    rmax = db_h['max_radius']
+    with sim.translate(-cen):
+        reg = sim[pyn.filt.Sphere(rmax)]
+        with pyn.analysis.halo.vel_center(reg, cen_size='5 kpc'):
+            for i,j in zip(['gas', 'star', 'dm'], [reg.g, reg.s, reg.d]):
+                # Magnitudes are positive and angles fall in the expected
+                # ranges (empty bins hold NaN, so compare only finite values)
+                jmag = db_h[f'j_{i}_profile']
+                jtheta = db_h[f'j_theta_{i}_profile']
+                jphi = db_h[f'j_phi_{i}_profile']
+                assert(np.all(jmag[np.isfinite(jmag)] >= 0))
+                assert(np.all(jtheta[np.isfinite(jtheta)] >= 0))
+                assert(np.all(jtheta[np.isfinite(jtheta)] <= np.pi))
+                assert(np.all(np.abs(jphi[np.isfinite(jphi)]) <= np.pi))
+                # Check that the profiles match the snapshot
+                p = pyn.analysis.profile.Profile(j, type='lin', ndim=3,
+                                                 min=0, max=rmax, nbins=int(rmax/res))
+                assert_allclose(db_h[f'j_{i}_profile'], p['jtot'], rtol=REL_TOL)
+                assert_allclose(db_h[f'j_theta_{i}_profile'], p['j_theta'], rtol=REL_TOL)
+                assert_allclose(db_h[f'j_phi_{i}_profile'], p['j_phi'], rtol=REL_TOL)
+
 def test_vrdisp(all_sims):
     """
     Check that the velocity dispersion calculations are sane.
