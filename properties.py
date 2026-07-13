@@ -419,9 +419,12 @@ class LiveTotMBH(LivePropertyCalculation):
                 if self._rmax is not None:
                     if bh['BH_central_distance']>self._rmax:
                         continue
-                mass += bh['BH_mass']
+                if 'BH_mass' in bh.keys(): #it might not be there if the bh is in an unresolved subhalo that didn't have a center calculated (To Do: add a warning about this)
+                    mass += bh['BH_mass']
         else:
             bh = halo[self._bhtype]
+            if 'BH_mass' not in bh.keys():
+                return mass
             if self._rmax is not None:
                 if bh['BH_central_distance']<self._rmax:
                     mass += bh['BH_mass']
