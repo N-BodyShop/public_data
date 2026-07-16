@@ -420,6 +420,15 @@ class BHMassEnclosed(HaloDensityProfile):
         proBH = pynbody.analysis.profile.Profile(bhs_only,
                                                      type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
         return proBH['mass_enc']
+    
+    @centred_calculation
+    def calculate(self,halo,properties):
+        maxrad = properties['max_radius']
+        delta = self.plot_xdelta()
+
+        mbh = self.rstat(halo,maxrad,delta)
+
+        return mbh
 
 class LiveTotMBH(LivePropertyCalculation):
     '''
