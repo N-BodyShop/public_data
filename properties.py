@@ -394,6 +394,32 @@ class MassEnclosedTemp(HaloDensityProfile):
         CG, WG, HG = self.rstat(halo,maxrad,delta)
 
         return CG, WG, HG
+    
+class BHMassEnclosed(HaloDensityProfile):
+    '''
+    total mass in black holes enclosed as a function of radius
+    '''
+    names = "bh_mass_profile"
+    
+    def __init__(self, simulation):
+        super().__init__(simulation)
+        self._xdelta = self.get_simulation_property("approx_resolution_kpc", 0.1)
+
+    def requires_property(self):
+        return ["shrink_center", "max_radius"]
+
+    def plot_ylabel(self):
+        return "BH Mass"
+    
+    def rstat(self, halo, maxrad,delta=0.1):
+        nbins = int(maxrad / delta)
+        maxrad = delta * (nbins + 1)
+        bhs_only = halo.s[pynbody.filt.LowPass('tform',0)]
+        if len(bhs_only)==0:
+            return np.zeros(nbins)
+        proBH = pynbody.analysis.profile.Profile(bhs_only,
+                                                     type='lin', ndim=3, min=0, max=maxrad, nbins=nbins)
+        return proBH['mass_enc']
 
 class LiveTotMBH(LivePropertyCalculation):
     '''
