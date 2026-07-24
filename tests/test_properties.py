@@ -91,13 +91,29 @@ def test_SFR(all_sims):
 
 def test_SFH(all_sims):
     """
-    Check that the SFR matches the total stellar mass.
+    Check that the SFR histogram matches the star formation in the snapshot.
     """
     db_h, sim, h, cen, res = all_sims
-    assert(np.all(db_h['SFR_histogram'] >= 0))
-    # Only the last 500 Myr are stored by default with tangos when a single snapshot is used.
-    assert_allclose(db_h['SFR_histogram'].mean()*db_h.timestep.time_gyr*1e9, 
-    h.s[h.s['tform'].in_units('Myr') > sim.properties['time'].in_units('Myr')-500]['massform'].in_units('Msol').sum(), rtol=REL_TOL)
+    sfh = db_h['SFR_histogram']
+    assert(np.all(sfh >= 0))
+    # Tangos bins tform on a fixed 0-20 Gyr grid of histogram_delta_t_Gyr wide
+    # bins, converts to Msol/yr, and stores only the final minimum_store_Gyr
+    # (0.5 Gyr, i.e. the last nstored bins), zero padded back to t=0.  Rebuild
+    # that same grid rather than cutting at t_now-500 Myr, which falls partway
+    # through a bin and leaves the comparison good to only a few times 1e-4.
+    dt = db_h.timestep.simulation.get('histogram_delta_t_Gyr')
+    nstored = int(0.5/dt)
+    start, end = len(sfh)-nstored, len(sfh)
+    expected, _ = np.histogram(h.s['tform'].in_units('Gyr'),
+                               weights=h.s['massform'].in_units('Msol'),
+                               bins=int(20.0/dt), range=(0, 20.0))
+    expected = expected/dt/1e9 # Msol per bin -> Msol/yr
+    assert_allclose(sfh[start:end], expected[start:end], rtol=REL_TOL)
+    # The stored bins must account for all the mass formed in that window
+    tform = h.s['tform'].in_units('Gyr')
+    window = (tform >= start*dt) & (tform < end*dt)
+    assert_allclose(sfh.sum()*dt*1e9,
+                    h.s['massform'].in_units('Msol')[window].sum(), rtol=REL_TOL)
 
 def test_mass_profiles(all_sims):
     """
