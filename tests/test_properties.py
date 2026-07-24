@@ -125,13 +125,12 @@ def test_mass_profiles(all_sims):
     hotfilt = pyn.filt.HighPass('temp', 1.e6)
     mass = {'hot':0,'warm':0,'cold':0}
     twophase = pyn.filt.HighPass('massHot', 0)
-    radfilt = pyn.filt.Sphere(db_h['max_radius'])
-    with sim.translate(-cen):
-        mass['hot'] = sim[radfilt].g[twophase]['massHot'].in_units('Msol').sum() 
-        mass['hot'] += sim[radfilt].g[~twophase & hotfilt]['mass'].in_units('Msol').sum() 
-        mass['cold'] = sim[radfilt].g[~twophase & coldfilt]['mass'].in_units('Msol').sum() \
-        + h.g[twophase]['massCold'].in_units('Msol').sum() 
-        mass['warm'] = sim[radfilt].g[~twophase & warmfilt]['mass'].in_units('Msol').sum() 
+    radfilt = pyn.filt.Sphere(int(db_h['max_radius']/res)*res, cen)
+    mass['hot'] = sim[radfilt].g[twophase]['massHot'].in_units('Msol').sum() 
+    mass['hot'] += sim[radfilt].g[~twophase & hotfilt]['mass'].in_units('Msol').sum() 
+    mass['cold'] = sim[radfilt].g[~twophase & coldfilt]['mass'].in_units('Msol').sum() \
+    + sim[radfilt].g[twophase]['massCold'].in_units('Msol').sum()
+    mass['warm'] = sim[radfilt].g[~twophase & warmfilt]['mass'].in_units('Msol').sum() 
     for i in ['cold', 'warm', 'hot']:
         # Our gas temperature phases should be less than the total mass
         assert(np.all(db_h['gas_mass_profile'] >= db_h[f'{i}_gas_mass_profile']))
@@ -139,7 +138,7 @@ def test_mass_profiles(all_sims):
         # The profile masses should match what's in the raw snapshot
         assert_allclose(db_h[f'{i}_gas_mass_profile'][-1],
         mass[i], rtol=REL_TOL)
-    for i,j in families(h):
+    for i,j in families(sim[radfilt]):
         assert_allclose(db_h[f'{i}_mass_profile'][-1],
         np.sum(j['mass'].in_units('Msol')), rtol=REL_TOL)
 
@@ -150,23 +149,22 @@ def test_metal_profiles(all_sims):
     db_h, sim, h, cen, res = all_sims
     twophase = pyn.filt.HighPass('massHot', 0)
     coldfilt = pyn.filt.LowPass('temp', 2.e4)
-    with sim.translate(-cen):
-        filt = pyn.filt.Sphere(db_h['max_radius'])
-        for i,j in zip(['gas', 'cold_gas', 'star'], [sim[filt].g, sim[filt].g, sim[filt].s]):
-            for k in ['metal', 'Fe', 'Ox']:
-                # Fe/Ox Fraction and Metallicity is between zero and one
-                assert(np.all(db_h[f'{i}_{k}_profile'] >= 0))
-                assert(np.all(db_h[f'{i}_{k}_profile'] <= 1))
-                # Metal fractions should always be greater than individual species fractions
-                assert(np.all(db_h[f'{i}_metal_profile'] >= db_h[f'{i}_{k}_profile']))
+    filt = pyn.filt.Sphere(int(db_h['max_radius']/res)*res, cen)
+    for i,j in zip(['gas', 'cold_gas', 'star'], [sim[filt].g, sim[filt].g, sim[filt].s]):
+        for k in ['metal', 'Fe', 'Ox']:
+            # Fe/Ox Fraction and Metallicity is between zero and one
+            assert(np.all(db_h[f'{i}_{k}_profile'] >= 0))
+            assert(np.all(db_h[f'{i}_{k}_profile'] <= 1))
+            # Metal fractions should always be greater than individual species fractions
+            assert(np.all(db_h[f'{i}_metal_profile'] >= db_h[f'{i}_{k}_profile']))
 
-                # Check that the metal fractions match the snapshot totals.
-                if i != 'cold_gas':
-                    masses = db_h[f'{i}_mass_profile']
-                    masses[1:] -= masses[:-1]
-                    assert_allclose((j['mass'].in_units('Msol')*j[auxnames[k]]).sum(),
-                                    (masses*db_h[f'{i}_{k}_profile']).sum(),
-                                    rtol=REL_TOL)
+            # Check that the metal fractions match the snapshot totals.
+            if i != 'cold_gas':
+                masses = db_h[f'{i}_mass_profile']
+                masses[1:] -= masses[:-1]
+                assert_allclose((j['mass'].in_units('Msol')*j[auxnames[k]]).sum(),
+                                (masses*db_h[f'{i}_{k}_profile']).sum(),
+                                rtol=REL_TOL)
 
 def test_surface_brightness(all_sims):
     """
@@ -174,10 +172,16 @@ def test_surface_brightness(all_sims):
     """
     db_h, sim, h, cen, res = all_sims
     with sim.translate(-cen):
-        with pyn.analysis.halo.vel_center(h):
-            with pyn.analysis.angmom.faceon(h,already_centered=True):
-                rmax = db_h['max_radius']
-                ps = pyn.analysis.profile.Profile(h.s, type='lin', ndim=2, rmin=0, rmax=rmax, nbins=int(rmax/res))
+        # any property inheriting from HaloDensityProfile works on a sphere of
+        # max_radius rather than the halo particles, and the disc orientation
+        # follows from whichever set is used, so centre and reorient on the
+        # same region here.
+        reg = sim[pyn.filt.Sphere(db_h['max_radius'])]
+        vcen = pyn.analysis.halo.vel_center(reg, return_cen=True)
+        with sim.offset_velocity(-vcen):
+            with pyn.analysis.angmom.faceon(reg,already_centered=True):
+                rmax = int(db_h['max_radius']/res)*res
+                ps = pyn.analysis.profile.Profile(reg.s, type='lin', ndim=2, rmin=0, rmax=rmax, nbins=int(rmax/res))
                 pkeys = ['sb,'+x for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
                 tkeys = [x+'_surface_brightness' for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
                 for pk,tk in zip(pkeys,tkeys):
@@ -191,7 +195,8 @@ def test_density_profiles(all_sims):
     rmax = db_h['max_radius']
     shell_vol = np.power(np.arange(res,int(rmax/res)*res+res,res),3)*np.pi*4/3
     shell_vol[1:] -= shell_vol[:-1]
-    for i,j in families(h):
+    filt = pyn.filt.Sphere(int(db_h['max_radius']/res)*res, cen)
+    for i,j in families(sim[filt]):
         assert_allclose((db_h[f'{i}_density_profile']*shell_vol).sum(),
         j['mass'].in_units('Msol').sum(), rtol=REL_TOL)
 
@@ -201,8 +206,8 @@ def test_inflow_outflow(all_sims):
     """
     db_h, sim, h, cen, res = all_sims
     with sim.translate(-cen):
-        with pyn.analysis.halo.vel_center(sim, cen_size=db_h['max_radius']):
-            filt = pyn.filt.Sphere(db_h['max_radius'])
+        with pyn.analysis.halo.vel_center(h, cen_size=db_h['max_radius']):
+            filt = pyn.filt.Sphere(int(db_h['max_radius']/res)*res)
             flow = {'inflow':sim[filt].g[sim[filt].g['vr'] < 0], 'outflow':sim[filt].g[sim[filt].g['vr'] > 0]}
             for i in ['mass', 'metal', 'Fe', 'Ox']:
                 for j in ['inflow','outflow']:
@@ -244,9 +249,10 @@ def test_angmom_profiles(all_sims):
     db_h, sim, h, cen, res = all_sims
     rmax = db_h['max_radius']
     with sim.translate(-cen):
-        reg = sim[pyn.filt.Sphere(rmax)]
-        with pyn.analysis.halo.vel_center(reg, cen_size='5 kpc'):
-            for i,j in zip(['gas', 'star', 'dm'], [reg.g, reg.s, reg.d]):
+        rmax = int(db_h['max_radius']/res)*res
+        vcen = pyn.analysis.halo.vel_center(h, cen_size='5 kpc', retcen=True)
+        with sim.offset_velocity(-vcen):
+            for i,j in zip(['gas', 'star', 'dm'], [sim.g, sim.s, sim.d]):
                 # Magnitudes are positive and angles fall in the expected
                 # ranges (empty bins hold NaN, so compare only finite values)
                 jmag = db_h[f'j_{i}_profile']
