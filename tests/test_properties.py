@@ -5,7 +5,7 @@ import numpy as np
 import pynbody as pyn
 from numpy.testing import assert_allclose
 
-REL_TOL=5e-2 # No calculations can produce results more than 5% different than what's in the database
+REL_TOL=1e-6 # Recomputed values must match the database to float32 storage precision
 auxnames = {'mass':'mass', 'metal':'metals',
             'Fe':'FeMassFrac','Ox':'OxMassFrac'} # Mappings to pynbody keys
 
@@ -250,7 +250,7 @@ def test_angmom_profiles(all_sims):
     rmax = db_h['max_radius']
     with sim.translate(-cen):
         rmax = int(db_h['max_radius']/res)*res
-        vcen = pyn.analysis.halo.vel_center(h, cen_size='5 kpc', retcen=True)
+        vcen = pyn.analysis.halo.vel_center(h, cen_size='5 kpc', return_cen=True)
         with sim.offset_velocity(-vcen):
             for i,j in zip(['gas', 'star', 'dm'], [sim.g, sim.s, sim.d]):
                 # Magnitudes are positive and angles fall in the expected
@@ -264,7 +264,7 @@ def test_angmom_profiles(all_sims):
                 assert(np.all(np.abs(jphi[np.isfinite(jphi)]) <= np.pi))
                 # Check that the profiles match the snapshot
                 p = pyn.analysis.profile.Profile(j, type='lin', ndim=3,
-                                                 min=0, max=rmax, nbins=int(rmax/res))
+                                                 rmin=0, rmax=rmax, nbins=int(rmax/res))
                 assert_allclose(db_h[f'j_{i}_profile'], p['jtot'], rtol=REL_TOL)
                 assert_allclose(db_h[f'j_theta_{i}_profile'], p['j_theta'], rtol=REL_TOL)
                 assert_allclose(db_h[f'j_phi_{i}_profile'], p['j_phi'], rtol=REL_TOL)
@@ -274,12 +274,21 @@ def test_vrdisp(all_sims):
     Check that the velocity dispersion calculations are sane.
     """
     db_h, sim, h, cen, res = all_sims
-    normify = lambda x: np.linalg.norm(np.array(np.std(x, axis=0)))
+    # The stored dispersions come from pynbody profiles, whose averages are mass
+    # weighted, so the values we compare against must be mass weighted as well.
+    def wdisp(vals, weights):
+        v = vals.view(np.ndarray)
+        w = weights.view(np.ndarray)
+        mean_sq = np.average(v, weights=w)**2
+        sq_mean = np.average(v**2, weights=w)
+        return np.sqrt(sq_mean - mean_sq)
+    normify = lambda vel, weights: np.sqrt(sum(wdisp(vel[:,k], weights)**2 for k in range(3)))
     with sim.translate(-cen):
-        with pyn.analysis.halo.vel_center(h, cen_size='5 kpc'):
+        vcen = pyn.analysis.halo.vel_center(h,cen_size='5 kpc', return_cen=True)
+        with sim.offset_velocity(-vcen):
             filt = pyn.filt.Sphere(res)
             # The radial velocity dispersion must always be positive
-            for i,j in families(sim[pyn.filt.Sphere(db_h['max_radius'])]):
+            for i,j in families(sim[pyn.filt.Sphere(res*int(db_h['max_radius']/res))]):
                 for k in ['', 'encl_']:
                     assert(np.all(db_h[f'vrdisp_{k}{i}'] >= 0))
                     assert(np.all(db_h[f'vdisp_{k}{i}_3d'] >= 0))
@@ -294,15 +303,15 @@ def test_vrdisp(all_sims):
                 else:
                     # Check that the dispersion results match the snapshot
                     assert_allclose(db_h[f'vrdisp_{i}'][0],
-                                    np.std(j[filt]['vr'].in_units('km s**-1')),
+                                    wdisp(j[filt]['vr'].in_units('km s**-1'), j[filt]['mass']),
                                     rtol=REL_TOL)
                     assert_allclose(db_h[f'vdisp_{i}_3d'][0],
-                                    normify(j[filt]['vel'].in_units('km s**-1')),
+                                    normify(j[filt]['vel'].in_units('km s**-1'), j[filt]['mass']),
                                     rtol=REL_TOL)
                 # Check that the enclosed dispersion results match the snapshot
                 assert_allclose(db_h[f'vrdisp_encl_{i}'][-1],
-                                np.std(j['vr'].in_units('km s**-1')),
+                                wdisp(j['vr'].in_units('km s**-1'), j['mass']),
                                 rtol=REL_TOL)
                 assert_allclose(db_h[f'vdisp_encl_{i}_3d'][-1],
-                                normify(j['vel'].in_units('km s**-1')),
+                                normify(j['vel'].in_units('km s**-1'), j['mass']),
                                 rtol=REL_TOL)

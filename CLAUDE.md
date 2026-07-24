@@ -25,13 +25,15 @@ pytest --paramfile=test_parallel.conf
 pytest tests/test_properties.py::test_masses --paramfile=test.conf
 ```
 
+`--paramfile` is a custom option defined in `tests/conftest.py` (default `test.conf`); it selects the config the session-scoped build fixture passes to `build_tangos_DB.sh`. A `.venv` symlink to the working virtualenv exists in the repo root (gitignored).
+
 Dependencies (installed via pip, no requirements file): `pynbody tangos scipy requests pytest pytest-order`.
 
 Test notes:
 - The session-scoped autouse fixtures in `tests/conftest.py` download ~test data from https://nbody.shop/testdata.tar.gz into `testdata/` and run `build_tangos_DB.sh` before any test runs, so even a single test triggers a full database build and a run takes many minutes end to end. `test.db` is deleted at session end.
 - Tests expect to run from the repo root and need `TANGOS_SIMULATION_FOLDER` (absolute path to `testdata`), `TANGOS_DB_CONNECTION=test.db`, `TANGOS_PROPERTY_MODULES=properties`, and `PYTHONPATH=.` set in the shell **before pytest starts** (as CI does). The `os.environ` assignments in conftest/test modules are NOT sufficient: tangos reads `TANGOS_DB_CONNECTION` at import time during collection, so if it is unset when pytest launches, the test process silently queries the default `~/tangos_data.db` (empty) while the build subprocess correctly writes `test.db` — every test then fails with "No simulation matches" even though the build succeeded.
 - If a previous pytest session was interrupted, a stale `test.db` may be left behind (the fixture that deletes it only runs at normal session end). Delete it before re-running so the build starts from a clean database rather than layering onto a stale, possibly partially-built one.
-- Property tests validate database values against direct pynbody recomputation with a 5% relative tolerance (`REL_TOL` in `tests/test_properties.py`).
+- `tests/test_counts.py` hardcodes the contents of the downloaded test data: 2 simulations (`g3021`, `cptmarvel`), 1 timestep each, 68 and 949 halos. If the tarball at nbody.shop changes, these fail for reasons unrelated to the code.
 
 ## Architecture
 
@@ -44,10 +46,17 @@ The database build pipeline (`build_tangos_DB.sh`) sources the config file as en
 
 Parallelism (`NPROCS`, `MPI`, `SERVER` config variables) maps to tangos backend flags: multiprocessing vs mpi4py, and `--load-mode=server`/`server-shared-mem` for volumes too large to load one snapshot per process.
 
+Config-file gotchas:
+- The script sources the config with `export $(cat $1 | grep -v '^#' | xargs)`, so values must not contain spaces or quotes; only `#` at line start comments out a line.
+- The particle-count floors read by the script are `MIN_GAS` and `MIN_STAR`. The README documents the second as `MIN_STARS`, which the script ignores (it then defaults to 0).
+- The script `unset PYTEST_CURRENT_TEST`s before running tangos: tangos refuses to load external property modules when that variable is set, so without it every custom property silently goes missing when the build runs under pytest.
+
 `properties.py` is the custom tangos property module, activated via `TANGOS_PROPERTY_MODULES=properties` with the repo root on `PYTHONPATH` (the build script sets both). It defines:
 - Profile-based properties subclassing `HaloDensityProfile` (inflow/outflow fluxes, angular momentum, metallicity, temperature-binned enclosed mass, surface brightness, velocity dispersions), plus custom pynbody `Profile.profile_property` helpers they rely on (`p_r_*`, `vr_disp_encl`, `v_disp_tot_encl`).
 - Live-calculated properties (`LiveRadius`, `StellarProfileDiagnosis` for sersic fits) that derive results from already-stored profiles at query time and are not listed in `write_properties`.
 - `InstantaneousSFR`, which reads star-formation parameters (`dCStar`, `dPhysDenMin`, `dTempMax`, `macros`) from simulation properties via `get_simulation_property`.
+
+Not every name in `write_properties` lives in `properties.py` — `contamination_fraction`, `shrink_center`, `max_radius`, `SFR_histogram`, the `*_density_profile`/`*_mass_profile` families and the `finder_*` masses are tangos built-ins. Conversely `properties.py` defines classes that are deliberately not written (`BHAccAveHistogram`, and the live-calculated ones).
 
 To add a new stored property: implement it in `properties.py` (its `names` entries are the property names) and add those names to `write_properties`. Halo-finder properties go in `import_properties` instead. `tests/test_counts.py::test_property_count` asserts that halos have exactly the number of properties listed in those two files, so it will fail if a property is listed but fails to compute.
 
