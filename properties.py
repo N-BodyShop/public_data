@@ -403,7 +403,7 @@ class BHMassEnclosed(HaloDensityProfile):
     
     def __init__(self, simulation):
         super().__init__(simulation)
-        self._xdelta = self.get_simulation_property("approx_resolution_kpc", 0.1)
+        #self._xdelta = self.get_simulation_property("approx_resolution_kpc", 0.1)
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -413,7 +413,7 @@ class BHMassEnclosed(HaloDensityProfile):
     
     def rstat(self, halo, maxrad,delta=0.1):
         nbins = int(maxrad / delta)
-        maxrad = delta * (nbins + 1)
+        maxrad = delta * (nbins)
         bhs_only = halo.s[pynbody.filt.LowPass('tform',0)]
         if len(bhs_only)==0:
             return np.zeros(nbins)
