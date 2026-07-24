@@ -33,6 +33,10 @@ TEMPERATURE_BANDS = {'cold': pynbody.filt.LowPass("temp", 1.e5),
 # A species is only profiled if it has more than this many particles.
 MIN_PARTICLES = 10
 
+# The radius vel_center averages the bulk halo velocity over. Every velocity
+# centred calculation below uses this same value.
+VEL_CENTER_SIZE = '5 kpc'
+
 
 # Replace NaN values with a substitute value in some list of arrays. Species
 # that were not profiled at all are passed through as None.
@@ -109,15 +113,13 @@ def two_phase_keys(halo):
     return hot, cold
 
 
-def velocity_centred(cen_size=None, family=None):
+def velocity_centred(family=None):
     '''
     Decorator for calculate() methods that must work in the halo's rest frame.
 
-    The bulk velocity found by pynbody's vel_center is subtracted before the
-    calculation and added back afterwards, since the snapshot is shared between
-    property calculations. cen_size is the radius vel_center averages over, and
-    may be a callable taking the existing properties for calculations that
-    centre over the whole halo; the pynbody default is used if it is None.
+    The bulk velocity found by pynbody's vel_center over the central
+    VEL_CENTER_SIZE is subtracted before the calculation and added back
+    afterwards, since the snapshot is shared between property calculations.
     family restricts the shift to a single particle family, so that velocities
     the calculation does not use are not needlessly rounded. If the bulk
     velocity cannot be found, the whole property group is skipped.
@@ -125,10 +127,9 @@ def velocity_centred(cen_size=None, family=None):
     def decorator(calculate):
         @functools.wraps(calculate)
         def calculate_in_rest_frame(self, halo, existing_properties):
-            size = cen_size(existing_properties) if callable(cen_size) else cen_size
-            kwargs = {} if size is None else {'cen_size': size}
             try:
-                vcen = pynbody.analysis.halo.vel_center(halo, return_cen=True, **kwargs)
+                vcen = pynbody.analysis.halo.vel_center(halo, return_cen=True,
+                                                        cen_size=VEL_CENTER_SIZE)
             except Exception:
                 return null_result(self)
             region = halo if family is None else getattr(halo, family)
@@ -215,7 +216,7 @@ class InflowOutflow(BinnedProfileProperty):
                      for sign, pro in directions)
 
     @centred_calculation
-    @velocity_centred(cen_size=lambda existing: existing["max_radius"], family='g')
+    @velocity_centred(family='g')
     def calculate(self, halo, existing_properties):
         return self._get_profile(halo, existing_properties["max_radius"])
 
@@ -242,7 +243,7 @@ class AngMomProfile(BinnedProfileProperty):
         return profile_values(profiles, ANGMOM_KEYS)
 
     @centred_calculation
-    @velocity_centred(cen_size="5 kpc")
+    @velocity_centred()
     def calculate(self, halo, existing_properties):
         return self._get_profile(halo, existing_properties["max_radius"])
 
@@ -618,7 +619,7 @@ class VelDispersionProfileBase(BinnedProfileProperty):
             + tuple(total for _, total in dispersions)
 
     @centred_calculation
-    @velocity_centred(cen_size='5 kpc')
+    @velocity_centred()
     def calculate(self, halo, properties):
         return tuple(nan_remover(self.rstat(halo, properties['max_radius'])))
 

@@ -6,8 +6,24 @@ import pynbody as pyn
 from numpy.testing import assert_allclose
 
 REL_TOL=1e-6 # Recomputed values must match the database to float32 storage precision
+CEN_SIZE='5 kpc' # Radius vel_center averages over, matching properties.VEL_CENTER_SIZE
 auxnames = {'mass':'mass', 'metal':'metals',
             'Fe':'FeMassFrac','Ox':'OxMassFrac'} # Mappings to pynbody keys
+
+def bulk_velocity(region):
+    """
+    The bulk velocity the velocity centred properties subtract: the vel_center
+    of the region they are handed, over the same fixed CEN_SIZE they use.
+    """
+    return pyn.analysis.halo.vel_center(region, cen_size=CEN_SIZE, return_cen=True)
+
+def sphere_region(sim, db_h):
+    """
+    The particles a property inheriting from HaloDensityProfile is handed: a
+    sphere of max_radius, not just the halo finder's particles. sim must already
+    be translated so that shrink_center is the origin.
+    """
+    return sim[pyn.filt.Sphere(db_h['max_radius'])]
 
 def families(h):
     """
@@ -176,9 +192,8 @@ def test_surface_brightness(all_sims):
         # max_radius rather than the halo particles, and the disc orientation
         # follows from whichever set is used, so centre and reorient on the
         # same region here.
-        reg = sim[pyn.filt.Sphere(db_h['max_radius'])]
-        vcen = pyn.analysis.halo.vel_center(reg, return_cen=True)
-        with sim.offset_velocity(-vcen):
+        reg = sphere_region(sim, db_h)
+        with sim.offset_velocity(-bulk_velocity(reg)):
             with pyn.analysis.angmom.faceon(reg,already_centered=True):
                 rmax = int(db_h['max_radius']/res)*res
                 ps = pyn.analysis.profile.Profile(reg.s, type='lin', ndim=2, rmin=0, rmax=rmax, nbins=int(rmax/res))
@@ -206,7 +221,7 @@ def test_inflow_outflow(all_sims):
     """
     db_h, sim, h, cen, res = all_sims
     with sim.translate(-cen):
-        with pyn.analysis.halo.vel_center(h, cen_size=db_h['max_radius']):
+        with sim.offset_velocity(-bulk_velocity(sphere_region(sim, db_h))):
             filt = pyn.filt.Sphere(int(db_h['max_radius']/res)*res)
             flow = {'inflow':sim[filt].g[sim[filt].g['vr'] < 0], 'outflow':sim[filt].g[sim[filt].g['vr'] > 0]}
             for i in ['mass', 'metal', 'Fe', 'Ox']:
@@ -250,8 +265,7 @@ def test_angmom_profiles(all_sims):
     rmax = db_h['max_radius']
     with sim.translate(-cen):
         rmax = int(db_h['max_radius']/res)*res
-        vcen = pyn.analysis.halo.vel_center(h, cen_size='5 kpc', return_cen=True)
-        with sim.offset_velocity(-vcen):
+        with sim.offset_velocity(-bulk_velocity(sphere_region(sim, db_h))):
             for i,j in zip(['gas', 'star', 'dm'], [sim.g, sim.s, sim.d]):
                 # Magnitudes are positive and angles fall in the expected
                 # ranges (empty bins hold NaN, so compare only finite values)
@@ -284,8 +298,7 @@ def test_vrdisp(all_sims):
         return np.sqrt(sq_mean - mean_sq)
     normify = lambda vel, weights: np.sqrt(sum(wdisp(vel[:,k], weights)**2 for k in range(3)))
     with sim.translate(-cen):
-        vcen = pyn.analysis.halo.vel_center(h,cen_size='5 kpc', return_cen=True)
-        with sim.offset_velocity(-vcen):
+        with sim.offset_velocity(-bulk_velocity(sphere_region(sim, db_h))):
             filt = pyn.filt.Sphere(res)
             # The radial velocity dispersion must always be positive
             for i,j in families(sim[pyn.filt.Sphere(res*int(db_h['max_radius']/res))]):
