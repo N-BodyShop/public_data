@@ -125,6 +125,7 @@ class AngMomProfile(HaloDensityProfile):
     def _get_profile(self, halo, maxrad):
         delta = self.plot_xdelta()
         nbins = int(maxrad / delta)
+        maxrad = nbins * delta
         jtot_g = None
         jtot_s = None
         jtot_dm = None
@@ -332,7 +333,6 @@ class MassEnclosedTemp(HaloDensityProfile):
     
     def __init__(self, simulation):
         super().__init__(simulation)
-        self._xdelta = self.get_simulation_property("approx_resolution_kpc", 0.1)
 
     def requires_property(self):
         return ["shrink_center", "max_radius"]
@@ -340,9 +340,9 @@ class MassEnclosedTemp(HaloDensityProfile):
     def plot_ylabel(self):
         return "Gas Mass"
      
-    def rstat(self, halo, maxrad,delta=0.1):
+    def rstat(self, halo, maxrad,delta):
         nbins = int(maxrad / delta)
-        maxrad = delta * (nbins + 1)
+        maxrad = delta * nbins 
         if len(halo.g)==0:
             return None, None, None
         try:
@@ -459,7 +459,7 @@ class StellarProfileFaceOn(HaloDensityProfile):
         halo['vel'] -= vcen
         with pynbody.analysis.angmom.faceon(halo, already_centered=True):
             nbins = int(existing_properties['max_radius']/self.plot_xdelta())
-            ps = pynbody.analysis.profile.Profile(halo.s, type='lin', ndim=2, min=0, max=existing_properties['max_radius'], nbins=nbins)
+            ps = pynbody.analysis.profile.Profile(halo.s, type='lin', ndim=2, min=0, max=nbins*self.plot_xdelta(), nbins=nbins)
             vals = [ps['sb,'+x] for x in ('u','g','r','i', 'z', 'U', 'V', 'J')]
         halo['vel'] += vcen
         return vals
@@ -610,7 +610,7 @@ class VelDispersionProfile(HaloDensityProfile):
     def rstat(self, halo, maxrad):
         delta = self.plot_xdelta()
         nbins = int(maxrad / delta)
-        maxrad = delta * (nbins + 1)
+        maxrad = delta * nbins 
         sigg = None
         sigs = None
         sigdm = None
@@ -740,7 +740,7 @@ class VelDispersionProfileEncl(HaloDensityProfile):
     def rstat(self, halo, maxrad):
         delta = self.plot_xdelta()
         nbins = int(maxrad / delta)
-        maxrad = delta * (nbins + 1)
+        maxrad = delta * nbins 
         sigG = None
         sigS = None
         sigDM = None
