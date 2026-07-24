@@ -92,7 +92,7 @@ class InflowOutflow(HaloDensityProfile):
     @centred_calculation
     def calculate(self, halo, existing_properties):
         try:
-            vcen = pynbody.analysis.halo.vel_center(halo,cen_size=existing_properties["max_radius"], retcen=True)
+            vcen = pynbody.analysis.halo.vel_center(halo,cen_size=existing_properties["max_radius"], return_cen=True)
         except:
             return None, None, None, None, None, None, None, None
 
@@ -160,7 +160,7 @@ class AngMomProfile(HaloDensityProfile):
     @centred_calculation
     def calculate(self, halo, existing_properties):
         try:
-            vcen = pynbody.analysis.halo.vel_center(halo,cen_size="5 kpc", retcen=True)
+            vcen = pynbody.analysis.halo.vel_center(halo,cen_size="5 kpc", return_cen=True)
         except:
             return None, None, None, None, None, None, None, None, None
 
@@ -672,7 +672,7 @@ class VelDispersionProfile(HaloDensityProfile):
     def calculate(self,halo,properties):
         maxrad = properties['max_radius']
         try:
-            vcen = pynbody.analysis.halo.vel_center(halo,cen_size='5 kpc', retcen=True)
+            vcen = pynbody.analysis.halo.vel_center(halo,cen_size='5 kpc', return_cen=True)
         except:
             return None, None, None
 
@@ -807,7 +807,7 @@ class VelDispersionProfileEncl(HaloDensityProfile):
     def calculate(self,halo,properties):
         maxrad = properties['max_radius']
         try:
-            vcen = pynbody.analysis.halo.vel_center(halo,cen_size='5 kpc', retcen=True)
+            vcen = pynbody.analysis.halo.vel_center(halo,cen_size='5 kpc', return_cen=True)
         except:
             return None, None, None
 
