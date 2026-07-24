@@ -265,8 +265,8 @@ class MetalProfile(BinnedProfileProperty):
         load_metal_arrays(halo)
         # Black holes are stored as star particles with a negative formation time
         formed = halo.s[pynbody.filt.HighPass('tform', 0)]
-        profiles = (family_profile(halo.s, maxrad, nbins, select=formed, weight='mass'),
-                    family_profile(halo.g, maxrad, nbins, weight='mass'))
+        profiles = (family_profile(halo.s, maxrad, nbins, select=formed, weight_by='mass'),
+                    family_profile(halo.g, maxrad, nbins, weight_by='mass'))
         return profile_values(profiles, METAL_ARRAYS)
 
     @centred_calculation
@@ -292,14 +292,14 @@ class ColdDenGasMetalProfile(BinnedProfileProperty):
         cold = pynbody.filt.LowPass('temp', 2e4)
         hot_key, cold_key = two_phase_keys(halo)
         if hot_key is None:
-            pro = lin_profile(halo[cold], maxrad, nbins, weight='mass')
+            pro = lin_profile(halo[cold], maxrad, nbins, weight_by='mass')
             return tuple(pro[array] for array in METAL_ARRAYS)
 
         # Two phase particles hold cold gas whatever their nominal temperature,
         # so they are profiled separately, weighted by their cold phase mass.
         twophase = pynbody.filt.HighPass(hot_key, 0)
-        one_pro = lin_profile(halo[~twophase & cold], maxrad, nbins, weight='mass')
-        cold_pro = lin_profile(halo[twophase], maxrad, nbins, weight=cold_key)
+        one_pro = lin_profile(halo[~twophase & cold], maxrad, nbins, weight_by='mass')
+        cold_pro = lin_profile(halo[twophase], maxrad, nbins, weight_by=cold_key)
         return tuple(one_pro[array] + cold_pro[array] for array in METAL_ARRAYS)
 
     @centred_calculation
