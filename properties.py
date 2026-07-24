@@ -765,7 +765,7 @@ class VelDispersionProfileEncl(HaloDensityProfile):
             sqmeany = np.nancumsum(proG['vy2']*proG['weight_fn'])/np.nancumsum(proG['weight_fn'])
             meansqy = (np.nancumsum(proG['vy']*proG['weight_fn'])/np.nancumsum(proG['weight_fn']))**2
             sqmeanz = np.nancumsum(proG['vz2']*proG['weight_fn'])/np.nancumsum(proG['weight_fn'])
-            meansqz = (np.nancumsum(proG['vz']*proS['weight_fn'])/np.nancumsum(proG['weight_fn']))**2
+            meansqz = (np.nancumsum(proG['vz']*proG['weight_fn'])/np.nancumsum(proG['weight_fn']))**2
             sigGx2 = sqmeanx-meansqx
             sigGy2 = sqmeany-meansqy
             sigGz2 = sqmeanz-meansqz
