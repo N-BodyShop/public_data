@@ -19,11 +19,11 @@ if __name__ == "__main__":
         logfile = open(lpath)
         # The default Tangos ORM doesn't support dictionaries here, so we will 
         # just store keys and values as two lists
-        sim['paramfile_keys'] = list(pdict.keys())
-        sim['paramfile_vals'] = [pdict[key] for key in sim['paramfile_keys']]
+        sim['paramfile_keys_noweb'] = list(pdict.keys())
+        sim['paramfile_vals_noweb'] = [pdict[key] for key in sim['paramfile_keys_noweb']]
         # Store the raw logfile as one long string
-        sim['logfile'] = logfile.read()
+        sim['logfile_noweb'] = logfile.read()
         logfile.seek(0)
         # Store individual log steps as a numpy array.
-        sim['logsteps'] = np.array([np.fromstring(line, sep=' ') for line in logfile.readlines() if 
+        sim['logsteps_noweb'] = np.array([np.fromstring(line, sep=' ') for line in logfile.readlines() if 
                 ('#' not in line and ('-' in line or '+' in line))])
